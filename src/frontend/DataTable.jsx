@@ -39,7 +39,7 @@ function DataTable({ data, onRowDoubleClick, emptyRowHeight }) {
   };
 
   return (
-    <Table striped bordered hover responsive size="sm">
+    <Table bordered hover responsive size="sm">
       <thead>
         <tr>
           {columns.map((column, index) => (
@@ -70,6 +70,7 @@ function DataTable({ data, onRowDoubleClick, emptyRowHeight }) {
                   width: columnWidths[column] ?? '100px',
                   textAlign: column === 'amount' ? 'right' : 'left'
                 }}
+                class="ps-3"
               >
                 {formatCell(column, row[column])}
               </td>
