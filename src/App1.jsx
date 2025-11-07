@@ -144,7 +144,7 @@ function App() {
 
   return (
     <div className="App">
-      <h1>TRANSACTIONS</h1>
+      <h4>TRANSACTIONS</h4>
       <DataTable 
         data={dataWithEmptyRow} 
         onRowDoubleClick={handleRowDoubleClick}
