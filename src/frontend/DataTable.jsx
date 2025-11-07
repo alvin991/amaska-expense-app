@@ -70,7 +70,7 @@ function DataTable({ data, onRowDoubleClick, emptyRowHeight }) {
                   width: columnWidths[column] ?? '100px',
                   textAlign: column === 'amount' ? 'right' : 'left'
                 }}
-                class="ps-3"
+                className="ps-3"
               >
                 {formatCell(column, row[column])}
               </td>
