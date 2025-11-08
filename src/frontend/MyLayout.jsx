@@ -174,8 +174,7 @@ function MyLayout() {
                         data={dataWithEmptyRow}
                         onRowDoubleClick={handleRowDoubleClick}
                         emptyRowHeight={filteredTransactions.length ? undefined : '50px'} // Pass fixed height if no data
-                        className="position-fixed" 
-                        style={{ position: 'fixed' }}
+                        className="position-fixed"
                     />
                 </div>
                 <MyModal
