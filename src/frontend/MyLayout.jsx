@@ -157,16 +157,27 @@ function MyLayout() {
             <div id="middle-panel" className="row" style={{ height: '30vh', width: '100vw', backgroundColor: 'lightyellow' }}>
                 Charts Content
             </div>
-            <div className="row" style={{ height: '2vh', width: '100vw', backgroundColor: 'lightblue' }}>
+            <div className="row" style={{ height: '2vh', width: '100vw', backgroundColor: 'lightgreen' }}>
                 line break
             </div>
-            <div id="bottom-panel" className="row" style={{ height: '60vh', width: '100vw', backgroundColor: 'lightgreen' }}>
-                <h4>TRANSACTIONS</h4>
-                <DataTable
-                    data={dataWithEmptyRow}
-                    onRowDoubleClick={handleRowDoubleClick}
-                    emptyRowHeight={filteredTransactions.length ? undefined : '50px'} // Pass fixed height if no data
-                />
+            <div id="bottom-panel" className="row" style={{ 
+                height: '60vh', 
+                width: '100vw', 
+                backgroundColor: 'lightblue',
+                display: 'flex',
+                flexDirection: 'column',
+                padding: '1rem'
+            }}>
+                <h4 style={{ margin: 0, marginBottom: '0.5rem' }}>TRANSACTIONS</h4>
+                <div style={{ flex: 1, overflow: 'auto' }}>
+                    <DataTable
+                        data={dataWithEmptyRow}
+                        onRowDoubleClick={handleRowDoubleClick}
+                        emptyRowHeight={filteredTransactions.length ? undefined : '50px'} // Pass fixed height if no data
+                        className="position-fixed" 
+                        style={{ position: 'fixed' }}
+                    />
+                </div>
                 <MyModal
                     show={showModal}
                     onHide={() => setShowModal(false)}
