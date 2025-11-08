@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import DataTable from './frontend/DataTable';
 import MyModal from './frontend/MyModal';
+import MyLayout from './frontend/MyLayout';
 import axios from 'axios';
 
 function App() {
@@ -144,7 +145,8 @@ function App() {
 
   return (
     <div className="App">
-      <h4>TRANSACTIONS</h4>
+      <MyLayout />
+      {/* <h4>TRANSACTIONS</h4>
       <DataTable 
         data={dataWithEmptyRow} 
         onRowDoubleClick={handleRowDoubleClick}
@@ -157,7 +159,7 @@ function App() {
         paymentMethods={paymentMethods} 
         categories={categories}
         onSuccess={refreshData}
-      />
+      /> */}
     </div>
   );
 }
