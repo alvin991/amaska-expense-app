@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Form, Container, Button, InputGroup } from 'react-bootstrap';
 import axios from 'axios';
+import ConfirmationModal from './MyConfirmBox';
 
 function MyForm({ paymentMethods = [], categories = [], transaction = null, onHide, onSuccess }) {
   const [formData, setFormData] = useState({
@@ -13,6 +14,7 @@ function MyForm({ paymentMethods = [], categories = [], transaction = null, onHi
   });
 
   const [isAmountFocused, setIsAmountFocused] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   // Update form when transaction changes
   useEffect(() => {
@@ -101,6 +103,27 @@ function MyForm({ paymentMethods = [], categories = [], transaction = null, onHi
     } catch (error) {
       console.error('Error saving transaction:', error);
     }
+  };
+
+  const handleDelete = () => {
+    if (!transaction?.transaction_id) return; // Nothing to delete
+    setShowConfirmModal(true); // Show the confirmation modal
+  };
+
+  const handleConfirmDelete = async () => {
+    setShowConfirmModal(false); // Hide the modal
+    try {
+      await axios.delete(`/api/transactions/${transaction.transaction_id}`);
+      await onSuccess();  // Refresh data first
+      onHide();          // Then close modal
+      console.log('Item deleted!');
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setShowConfirmModal(false); // Hide the modal
   };
 
   const formatAmount = (value) => {
@@ -194,12 +217,26 @@ function MyForm({ paymentMethods = [], categories = [], transaction = null, onHi
           />
         </Form.Group>
 
-        <div className="d-grid gap-2">
+        <div className="d-grid gap-2 mb-3">
           <Button variant="primary" type="submit">
             {transaction ? 'Update' : 'Create'} Transaction
           </Button>
         </div>
+
+        <div className="d-grid gap-2">
+          <Button variant="danger" type="button" style={{ display: transaction ? 'block' : 'none' }} onClick={handleDelete}>
+            Delete Transaction
+          </Button>
+        </div>
       </Form>
+
+      <ConfirmationModal
+        show={showConfirmModal}
+        title="Confirm Deletion"
+        message="Are you sure you want to delete this item? This action cannot be undone."
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+      />
     </Container>
   );
 }

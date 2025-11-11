@@ -202,6 +202,41 @@ app.put('/api/transactions/:id', (req, res) => {
     });
 });
 
+// Delete existing transaction
+app.delete('/api/transactions/:id', (req, res) => {
+    const transactionId = req.params.id;
+    
+    const db = new sqlite3.Database('./../db/database.db', sqlite3.OPEN_READWRITE, (err) => {
+        if (err) {
+            console.error('Error opening database:', err.message);
+            return res.status(500).json({ error: 'Failed to connect to the database' });
+        }
+
+        const sql = `
+            DELETE FROM expense_transactions 
+            WHERE id = ?
+        `;
+        
+        db.run(sql, [transactionId], 
+            function(err) {
+                if (err) {
+                    console.error('Error deleting transaction:', err.message);
+                    res.status(500).json({ error: 'Failed to delete transaction' });
+                } else if (this.changes === 0) {
+                    res.status(404).json({ error: 'Transaction not found' });
+                } else {
+                    res.json({ 
+                        message: 'Transaction deleted successfully',
+                        changes: this.changes 
+                    });
+                }
+                db.close();
+            }
+        );
+    });
+});
+
+
 app.listen(8080, () => {
     console.log('Server is running on http://localhost:8080');
 });
