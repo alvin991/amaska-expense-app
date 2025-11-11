@@ -170,7 +170,8 @@ function MyLayout() {
 
         // Get the full month name in the default locale
         const monthName = today.toLocaleString('default', { month: 'long' });
-        setMonthName(monthName);
+        const year = today.getFullYear();
+        setMonthName(`${monthName}, ${year}`);
 
         const fetchAllData = async () => {
             try {
