@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import DataTable from './DataTable';
 import MyModal from './MyModal';
+import PieChartWithCustomizedLabel from './PieChart1';
+import PieChartHasTextInside from './PieChart2';
 
 function MyLayout() {
     const [users, setUsers] = useState([]);
@@ -13,7 +15,18 @@ function MyLayout() {
     const [filteredTransactions, setFilteredTransactions] = useState([]);
     const [showModal, setShowModal] = useState(false);
     const [selectedTransaction, setSelectedTransaction] = useState(null);
+    const [chartDataByCategory, setChartDataByCategory] = useState([]);
+    const [chartDataByPaymentMethod, setChartDataByPaymentMethod] = useState([]);
+    const [periodTotalAmount, setPeriodTotalAmount] = useState(0.00);
+    const [leftToSpendData, setLeftToSpendData] = useState([]);
+    const [leftToSpend, setLeftToSpend] = useState('0.00');
+    const [monthName, setMonthName] = useState('');
 
+    // local variables
+    let BudgetByMonth = 2000;
+    let period = '2024-06'; // YYYY-MM format
+
+    // call APIs to load data
     // fetch users from API
     const fetchUsers = async () => {
         try {
@@ -76,6 +89,59 @@ function MyLayout() {
 
             setTransactions(formattedTransactions);
 
+            // setPeriodTotalAmount(response.data.reduce((accumulator, currentValue) => {
+            //     return accumulator + currentValue.amount;
+            // }, 0)); // The initial value of the accumulator is 0)
+
+            // Calculate totals directly
+            const totalAmount = response.data.reduce((acc, tx) => acc + tx.amount, 0);
+            const leftToSpendValue = (BudgetByMonth - totalAmount).toFixed(2);
+
+            setPeriodTotalAmount(totalAmount.toFixed(2));
+            setLeftToSpend(leftToSpendValue);
+
+            // Use the freshly calculated values here, not state!
+            setLeftToSpendData([
+                { name: 'Left to Spend', value: Number(leftToSpendValue), fill: '#00C49F' },
+                { name: 'Spent', value: Number(totalAmount), fill: '#FF8042' }
+            ]);
+            console.log(`leftToSpendData: ${JSON.stringify([
+                { name: 'Left to Spend', value: Number(leftToSpendValue), fill: '#00C49F' },
+                { name: 'Spent', value: Number(totalAmount), fill: '#FF8042' }
+            ])}`);
+
+            function formatData(responseData, groupByField) {
+                let result = responseData.reduce((accumulator, currentItem) => {
+                    const key = currentItem[groupByField];
+                    const value = currentItem.amount;
+
+                    if (!accumulator[key]) {
+                        accumulator[key] = 0; // Initialize the sum for a new key
+                    }
+                    accumulator[key] += value; // Add the current item's value to the key's sum
+
+                    return accumulator;
+                }, {})
+
+                result = Array.from(Object.entries(result), ([name, value]) => ({ name, value }))
+
+                result.forEach(item => {
+                    item.fill = '#' + Math.floor(Math.random()*16777215).toString(16); // random color
+                });
+
+                return result;
+            }
+
+            setChartDataByCategory(response.data.map(tx => ({
+                name: tx.category_name,
+                value: tx.amount,
+                fill: '#' + Math.floor(Math.random()*16777215).toString(16) // random color
+            })));
+
+            setChartDataByCategory(formatData(response.data, 'category_name'));
+            setChartDataByPaymentMethod(formatData(response.data, 'payment_method_name'));
+
+
             const filtered = formattedTransactions.map(tx => ({
                 transaction_id: tx.transaction_id,
                 date: tx.transaction_date,
@@ -100,6 +166,12 @@ function MyLayout() {
     };
 
     useEffect(() => {
+        const today = new Date(); // Or any other Date object, e.g., new Date('2025-06-15')
+
+        // Get the full month name in the default locale
+        const monthName = today.toLocaleString('default', { month: 'long' });
+        setMonthName(monthName);
+
         const fetchAllData = async () => {
             try {
                 await Promise.all([
@@ -147,19 +219,33 @@ function MyLayout() {
     ];
 
     return (
-        <div className="container" style={{ border: '1px solid black' }}>
-            <div id="top-panel" className="row" style={{ height: '8vh', width: '100vw', backgroundColor: 'lightcoral' }}>
-                Month
+        <div className="container">
+            <div id="top-panel" className="row d-flex justify-content-center" style={{ height: '8vh', width: '100vw', alignItems: 'center', paddingLeft: '1%', paddingRight: '1%' }}>
+                <div style={{ border: '2px solid #ccc', display: 'flex', justifyContent: 'center' }}>
+                    <div className='col-md-4' style={{ paddingTop: '1%', paddingBottom: '1%' }}>
+                        <h4 style={{ margin: 0, marginBottom: '0.5rem' }}> {monthName} </h4>
+                    </div>
+                    <div className='col-md-4 custom-border-td' style={{ paddingTop: '1%', paddingBottom: '1%' }}>
+                        <h4 style={{ margin: 0, marginBottom: '0.5rem' }}>Budget:  { BudgetByMonth }</h4>
+                    </div>
+                    <div className='col-md-4 custom-border-td' style={{ paddingTop: '1%', paddingBottom: '1%' }}>
+                        <h4 style={{ margin: 0, marginBottom: '0.5rem' }}>Spent:  { periodTotalAmount }</h4>
+                    </div>
+                </div>
             </div>
-            <div className="row" style={{ height: '2vh', width: '100vw', backgroundColor: 'lightpink' }}>
-                line break
+            <div className="row line-break" style={{ height: '2vh', width: '100vw' }} />
+            <div id="middle-panel" className="row d-flex justify-content-center" style={{ height: '30vh', width: '100vw' }}>
+                <div className='col-md-4'>
+                    <PieChartHasTextInside chartData={leftToSpendData} heading='LEFT TO SPEND' centerLabel={ '$' + leftToSpend} />
+                </div>
+                <div className='col-md-4'>
+                    <PieChartWithCustomizedLabel chartData={chartDataByCategory} heading='CATEGORY' />
+                </div>
+                <div className='col-md-4'>
+                    <PieChartWithCustomizedLabel chartData={chartDataByPaymentMethod} heading='PAY BY' />
+                </div>
             </div>
-            <div id="middle-panel" className="row" style={{ height: '30vh', width: '100vw', backgroundColor: 'lightyellow' }}>
-                Charts Content
-            </div>
-            <div className="row" style={{ height: '2vh', width: '100vw', backgroundColor: 'lightgreen' }}>
-                line break
-            </div>
+            <div className="row line-break" style={{ height: '2vh', width: '100vw' }} />
             <div id="bottom-panel" className="row" style={{ 
                 height: '60vh', 
                 width: '100vw', 

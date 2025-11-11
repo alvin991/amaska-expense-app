@@ -66,3 +66,20 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+.vertical-line {
+  /* Line properties */
+  width: 1px;
+  height: 200px;
+  background-color: black;
+
+  /* Empty space at top and bottom */
+  margin-top: 50px;
+  margin-bottom: 50px;
+}
+
+.custom-border-td {
+  border-left: 2px solid transparent; /* A transparent base border */
+  border-image: linear-gradient(to bottom, transparent 0%, transparent 20%, #ccc 20%, #ccc 80%, transparent 80%, transparent 100%) 1;
+  /* Adjust the percentages to control the empty top/bottom sections and the solid middle section */
+}
