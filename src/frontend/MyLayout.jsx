@@ -227,10 +227,10 @@ function MyLayout() {
                         <h4 style={{ margin: 0, marginBottom: '0.5rem' }}> {monthName} </h4>
                     </div>
                     <div className='col-md-4 custom-border-td' style={{ paddingTop: '1%', paddingBottom: '1%' }}>
-                        <h4 style={{ margin: 0, marginBottom: '0.5rem' }}>Budget:  { BudgetByMonth }</h4>
+                        <h4 style={{ margin: 0, marginBottom: '0.5rem' }}>Budget:  ${ BudgetByMonth }</h4>
                     </div>
                     <div className='col-md-4 custom-border-td' style={{ paddingTop: '1%', paddingBottom: '1%' }}>
-                        <h4 style={{ margin: 0, marginBottom: '0.5rem' }}>Spent:  { periodTotalAmount }</h4>
+                        <h4 style={{ margin: 0, marginBottom: '0.5rem' }}>Spent:  ${ periodTotalAmount }</h4>
                     </div>
                 </div>
             </div>
