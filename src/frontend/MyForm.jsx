@@ -147,7 +147,7 @@ function MyForm({ paymentMethods = [], categories = [], transaction = null, onHi
               onFocus={handleAmountFocus}
               onBlur={handleAmountBlur}
               placeholder="0.00"
-              style={{ textAlign: 'right' }}
+              style={{ textAlign: 'left' }}
             />
           </InputGroup>
         </Form.Group>
