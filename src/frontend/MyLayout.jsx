@@ -47,7 +47,7 @@ function MyLayout() {
     const fetchCategories = async () => {
         try {
             const response = await axios.get('/api/categories'); // use relative URL so vite proxy handles it
-            console.log(response.data);
+            // console.log(response.data);
             // Transform data if necessary (e.g., map 'name' to label and 'id' to value)
             const formattedOptions = await response.data.map(item => ({
                 label: item.name,
@@ -65,7 +65,7 @@ function MyLayout() {
     const fetchPaymentMethods = async () => {
         try {
             const response = await axios.get('/api/payment_methods'); // use relative URL so vite proxy handles it
-            console.log(response.data);
+            // console.log(response.data);
             // Transform data if necessary (e.g., map 'name' to label and 'id' to value)
             const formattedOptions = await response.data.map(item => ({
                 label: item.name,
@@ -88,12 +88,16 @@ function MyLayout() {
             }
             const response = await axios.get('/api/transactions', { params: queryParams}); // use relative URL so vite proxy handles it
 
+            // console.log(`Fetched response: ${JSON.stringify(response, null, 2)}`);
+
             // Format dates in the full transaction data
             const formattedTransactions = response.data.map(tx => ({
                 ...tx,
                 transaction_date: tx.transaction_date ?
                     new Date(tx.transaction_date).toISOString().split('T')[0] : ''
             }));
+
+            // console.log(`Fetched formattedTransactions: ${JSON.stringify(formattedTransactions, null, 2)}`);
 
             setTransactions(formattedTransactions);
 
@@ -113,10 +117,10 @@ function MyLayout() {
                 { name: 'Left to Spend', value: Number(leftToSpendValue), fill: '#00C49F' },
                 { name: 'Spent', value: Number(totalAmount), fill: '#FF8042' }
             ]);
-            console.log(`leftToSpendData: ${JSON.stringify([
-                { name: 'Left to Spend', value: Number(leftToSpendValue), fill: '#00C49F' },
-                { name: 'Spent', value: Number(totalAmount), fill: '#FF8042' }
-            ])}`);
+            // console.log(`leftToSpendData: ${JSON.stringify([
+            //     { name: 'Left to Spend', value: Number(leftToSpendValue), fill: '#00C49F' },
+            //     { name: 'Spent', value: Number(totalAmount), fill: '#FF8042' }
+            // ])}`);
 
             function formatData(responseData, groupByField) {
                 let result = responseData.reduce((accumulator, currentItem) => {
@@ -161,7 +165,7 @@ function MyLayout() {
             }));
 
             setFilteredTransactions(filtered);
-            console.log('Transactions loaded:', filtered.length);
+            // console.log('Transactions loaded:', filtered.length);
         } catch (error) {
             setError(error.message);
         } finally {
@@ -265,17 +269,17 @@ function MyLayout() {
             }}>
                 <h4 style={{ margin: 0, marginBottom: '0.5rem' }}>TRANSACTIONS</h4>
                 <div style={{ flex: 1, overflow: 'auto' }}>
-                    <DataTable
+                    {/* <DataTable
                         data={dataWithEmptyRow}
                         onRowDoubleClick={handleRowDoubleClick}
                         emptyRowHeight={filteredTransactions.length ? undefined : '50px'} // Pass fixed height if no data
                         className="position-fixed"
-                    />
-                    {/* <DateGroupedTable 
-                        data={dataWithEmptyRow}
+                    /> */}
+                    <DateGroupedTable 
+                        data={filteredTransactions}
                         onRowDoubleClick={handleRowDoubleClick}
                         className="position-fixed"
-                    /> */}
+                    />
                 </div>
                 <MyModal
                     show={showModal}
