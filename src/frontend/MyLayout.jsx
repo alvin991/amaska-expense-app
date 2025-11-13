@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import DataTable from './DataTable';
+import DateGroupedTable from './DateGroupedTable.jsx';
 import MyModal from './MyModal';
 import PieChartWithCustomizedLabel from './PieChart1';
 import PieChartHasTextInside from './PieChart2';
@@ -257,10 +258,15 @@ function MyLayout() {
             }}>
                 <h4 style={{ margin: 0, marginBottom: '0.5rem' }}>TRANSACTIONS</h4>
                 <div style={{ flex: 1, overflow: 'auto' }}>
-                    <DataTable
+                    {/* <DataTable
                         data={dataWithEmptyRow}
                         onRowDoubleClick={handleRowDoubleClick}
                         emptyRowHeight={filteredTransactions.length ? undefined : '50px'} // Pass fixed height if no data
+                        className="position-fixed"
+                    /> */}
+                    <DateGroupedTable 
+                        data={dataWithEmptyRow}
+                        onRowDoubleClick={handleRowDoubleClick}
                         className="position-fixed"
                     />
                 </div>
