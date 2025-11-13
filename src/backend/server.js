@@ -91,7 +91,7 @@ app.get('/api/transactions', (req, res) => {
             res.status(500).json({ error: 'Failed to connect to the database' });
             return;
         }
-
+        const { start_date, end_date } = req.query;
         db.all(`SELECT 
                     t.id AS transaction_id, 
                     t.amount, 
@@ -112,7 +112,8 @@ app.get('/api/transactions', (req, res) => {
                 JOIN users u ON t.user_id = u.id 
                 JOIN expense_categories c ON t.category_id = c.id 
                 JOIN payment_methods p ON t.payment_method_id = p.id
-                ORDER BY t.transaction_date DESC, t.id DESC;`, [], (err, rows) => {
+                WHERE t.transaction_date BETWEEN ? AND ?
+                ORDER BY t.transaction_date DESC, t.id DESC;`, [start_date, end_date], (err, rows) => {
             if (err) {
                 console.error('Error executing query:', err.message);
                 res.status(500).json({ error: 'Failed to retrieve data' });

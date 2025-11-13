@@ -26,6 +26,9 @@ function MyLayout() {
     // local variables
     let BudgetByMonth = 2000;
     let period = '2024-06'; // YYYY-MM format
+    const today = new Date(), currentYear = today.getFullYear(), currentMonth = today.getMonth();
+    const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
+    const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
 
     // call APIs to load data
     // fetch users from API
@@ -79,7 +82,11 @@ function MyLayout() {
     // fetch transactions from API
     const fetchTransactions = async () => {
         try {
-            const response = await axios.get('/api/transactions'); // use relative URL so vite proxy handles it
+            const queryParams = {
+                start_date: firstDayOfMonth.toISOString().split('T')[0],
+                end_date: lastDayOfMonth.toISOString().split('T')[0],
+            }
+            const response = await axios.get('/api/transactions', { params: queryParams}); // use relative URL so vite proxy handles it
 
             // Format dates in the full transaction data
             const formattedTransactions = response.data.map(tx => ({
@@ -258,17 +265,17 @@ function MyLayout() {
             }}>
                 <h4 style={{ margin: 0, marginBottom: '0.5rem' }}>TRANSACTIONS</h4>
                 <div style={{ flex: 1, overflow: 'auto' }}>
-                    {/* <DataTable
+                    <DataTable
                         data={dataWithEmptyRow}
                         onRowDoubleClick={handleRowDoubleClick}
                         emptyRowHeight={filteredTransactions.length ? undefined : '50px'} // Pass fixed height if no data
                         className="position-fixed"
-                    /> */}
-                    <DateGroupedTable 
+                    />
+                    {/* <DateGroupedTable 
                         data={dataWithEmptyRow}
                         onRowDoubleClick={handleRowDoubleClick}
                         className="position-fixed"
-                    />
+                    /> */}
                 </div>
                 <MyModal
                     show={showModal}
