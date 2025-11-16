@@ -1,12 +1,12 @@
-import MyLayout from './frontend/MyLayout';
 import './App.css'
-import DateGroupedTable from './frontend/DateGroupedTable.jsx';
+import MyLayout from './frontend/MyLayout.jsx';
+import CategoryModal from './frontend/CategoryModal.jsx';
 
 function App() {
     return (
         <div className="App">
-            <MyLayout />
-            {/* <DateGroupedTable /> */}
+            {/* <MyLayout /> */}
+            <CategoryModal />
         </div>
     );
 }
