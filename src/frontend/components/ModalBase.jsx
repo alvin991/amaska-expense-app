@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+// import Modal from 'react-bootstrap/Modal';
 import ModalStateManager from '../services/ModalStateManager';
 // import pageRegistry from './PageRegistry';
 import { PAGE_TYPES } from '../types/PageConfig';
 import TransactionEntryPage, { DEFAULT_TRANSACTION } from './TransactionEntryPage';
 import CategoryListPage from './CategoryListPage';
-
+import CategoryDetailsPage from './CategoryDetailsPage';
 
 const ModalBase = ( { paymentMethods = [], categories = [], propTransaction = DEFAULT_TRANSACTION, categoriesUsed = [], isOpen = false, refreshData, onHide } ) => {
   const effectiveTransaction = propTransaction ?? DEFAULT_TRANSACTION;
@@ -24,7 +25,7 @@ const ModalBase = ( { paymentMethods = [], categories = [], propTransaction = DE
     if (isOpen) {
       stateManager.reset(PAGE_TYPES.TRANSACTION, transaction);
     }
-  }, [isOpen, transaction, stateManager]);
+  }, [isOpen]);
 
   // - update transaction
   const updateCategoryId = ( CategoryId ) => {
@@ -38,37 +39,55 @@ const ModalBase = ( { paymentMethods = [], categories = [], propTransaction = DE
   };
 
   const renderPageContent = () => {
-      switch (currentPage) {
-      case 'transaction':
-          return <TransactionEntryPage 
-                  paymentMethods={paymentMethods}
-                  categories={categories}
-                  transaction={transaction}
-                  onNavigate={setCurrentPage}
-                  refreshData={refreshData}
-                  onHide={onHide}
-                  setTransaction={setTransaction}
-                />;
-      case 'categoryList':
-          return <CategoryListPage 
-                  categories={categories}
-                  categoriesUsed={categoriesUsed}
-                  transaction={transaction}
-                  updateCategoryId={updateCategoryId}
-                  onNavigate={setCurrentPage}
-                  setTransaction={setTransaction}
-                />;
-      case 'categoryDetails':
-          return <CategoryDetailsPage onNavigate={setCurrentPage} />;
-      default:
-          return null;
-      }
+    console.log(`Current page: ${currentPage}`);
+    switch (currentPage) {
+    case 'transaction':
+        return <TransactionEntryPage 
+                paymentMethods={paymentMethods}
+                categories={categories}
+                transaction={transaction}
+                onNavigate={setCurrentPage}
+                refreshData={refreshData}
+                onHide={onHide}
+                setTransaction={setTransaction}
+              />;
+    case 'categoryList':
+        return <CategoryListPage 
+                categories={categories}
+                categoriesUsed={categoriesUsed}
+                transaction={transaction}
+                updateCategoryId={updateCategoryId}
+                onNavigate={setCurrentPage}
+                setTransaction={setTransaction}
+              />;
+    case 'categoryDetails':
+        console.log(`redirecting to category details page`);
+        return <CategoryDetailsPage onNavigate={setCurrentPage} />;
+    default:
+        return null;
+    }
   };
 
   return (
     <div>
       {renderPageContent()}
     </div>
+    // <Modal
+    //   show={isOpen}
+    //   onHide={onClose}
+    //   dialogClassName="modal-90w"
+    //   size='lg'
+    //   centered
+    //   backdrop="static"
+    //   keyboard={false}
+    // >
+    //   <Modal.Header closeButton>
+    //     <Modal.Title>{modalTitle}</Modal.Title>
+    //   </Modal.Header>
+    //   <Modal.Body>
+    //     {renderPageContent()}
+    //   </Modal.Body>
+    // </Modal>
   );
 };
 
