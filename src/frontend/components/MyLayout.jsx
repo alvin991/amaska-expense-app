@@ -52,13 +52,7 @@ function MyLayout() {
     const fetchCategories = async () => {
         try {
             const response = await axios.get('/api/categories'); // use relative URL so vite proxy handles it
-            // console.log(response.data);
-            // Transform data if necessary (e.g., map 'name' to label and 'id' to value)
-            const formattedOptions = await response.data.map(item => ({
-                label: item.name,
-                value: item.id
-            }));
-            setCategories(formattedOptions);
+            setCategories(response.data);
         } catch (error) {
             setError(error.message);
         } finally {
@@ -70,13 +64,7 @@ function MyLayout() {
     const fetchPaymentMethods = async () => {
         try {
             const response = await axios.get('/api/payment_methods'); // use relative URL so vite proxy handles it
-            // console.log(response.data);
-            // Transform data if necessary (e.g., map 'name' to label and 'id' to value)
-            const formattedOptions = await response.data.map(item => ({
-                label: item.name,
-                value: item.id
-            }));
-            setPaymentMethods(formattedOptions);
+            setPaymentMethods(response.data);
         } catch (error) {
             setError(error.message);
         } finally {
@@ -257,13 +245,13 @@ function MyLayout() {
             <div className="row line-break" style={{ height: '2vh', width: '100vw' }} />
             <div id="middle-panel" className="row d-flex justify-content-center" style={{ height: '30vh', width: '100vw' }}>
                 <div className='col-md-4'>
-                    <PieChartHasTextInside chartData={leftToSpendData} heading='LEFT TO SPEND' centerLabel={ '$' + leftToSpend} />
+                    {/* <PieChartHasTextInside chartData={leftToSpendData} heading='LEFT TO SPEND' centerLabel={ '$' + leftToSpend} /> */}
                 </div>
                 <div className='col-md-4'>
-                    <PieChartWithCustomizedLabel chartData={chartDataByCategory} heading='CATEGORY' />
+                    {/* <PieChartWithCustomizedLabel chartData={chartDataByCategory} heading='CATEGORY' /> */}
                 </div>
                 <div className='col-md-4'>
-                    <PieChartWithCustomizedLabel chartData={chartDataByPaymentMethod} heading='PAY BY' />
+                    {/* <PieChartWithCustomizedLabel chartData={chartDataByPaymentMethod} heading='PAY BY' /> */}
                 </div>
             </div>
             <div className="row line-break" style={{ height: '2vh', width: '100vw' }} />

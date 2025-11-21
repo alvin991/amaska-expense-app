@@ -179,8 +179,8 @@ function MyForm({ transaction, setTransaction, paymentMethods = [], categories =
           >
             <option value="">Select payment method</option>
             {paymentMethods.map((method) => (
-              <option key={method.value} value={method.value}>
-                {method.label}
+              <option key={method.id} value={method.id}>
+                {method.name}
               </option>
             ))}
           </Form.Select>
@@ -195,8 +195,8 @@ function MyForm({ transaction, setTransaction, paymentMethods = [], categories =
           >
             <option value="">Select category</option>
             {categories.map((category) => (
-              <option key={category.value} value={category.value}>
-                {category.label}
+              <option key={category.id} value={category.id}>
+                {category.name}
               </option>
             ))}
           </Form.Select>
@@ -212,8 +212,8 @@ function MyForm({ transaction, setTransaction, paymentMethods = [], categories =
           >
             {/* <option value={formData.category}>{formData.category}</option> */}
             {categories.map((category) => (
-              <option key={category.value} value={category.value}>
-                {category.label}
+              <option key={category.id} value={category.id}>
+                {category.name}
               </option>
             ))}
           </Form.Select>

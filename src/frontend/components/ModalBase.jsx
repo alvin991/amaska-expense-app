@@ -31,10 +31,10 @@ const ModalBase = ( { paymentMethods = [], categories = [], propTransaction = DE
   const updateCategoryId = ( CategoryId ) => {
     // const newTransaction = JSON.parse(JSON.stringify(prev));
     // newTransaction['category_id'] = updates;
-    // newTransaction['category_name'] = categories.find(cat => cat.value === updates).name;
+    // newTransaction['category_name'] = categories.find(cat => cat.id === updates).name;
     // setTransaction(newTransaction);
     console.log(`prev transaction: ${JSON.stringify(transaction, null, 2)}`);
-    setTransaction(prev => ({ ...prev, category_id: CategoryId, category_name: categories.find(cat => cat.value === CategoryId).name }));
+    setTransaction(prev => ({ ...prev, category_id: CategoryId, category_name: categories.find(cat => cat.id === CategoryId).name }));
     console.log(`Updated transaction: ${JSON.stringify(transaction, null, 2)}`);
   };
 
@@ -62,7 +62,10 @@ const ModalBase = ( { paymentMethods = [], categories = [], propTransaction = DE
               />;
     case 'categoryDetails':
         console.log(`redirecting to category details page`);
-        return <CategoryDetailsPage onNavigate={setCurrentPage} />;
+        return <CategoryDetailsPage 
+                propCategory={categories.find(cat => cat.id === transaction.category_id)}
+                onNavigate={setCurrentPage} 
+              />;
     default:
         return null;
     }

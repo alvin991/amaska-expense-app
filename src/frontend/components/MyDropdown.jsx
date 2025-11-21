@@ -13,8 +13,8 @@ function MyDropdown( {options = []} ) {
             <select id="apiDropdown" value={selectedValue} onChange={handleChange}>
                 <option value="">Please choose</option>
                 {options.map((option) => (
-                    <option key={option.value} value={option.value}>
-                        {option.label}
+                    <option key={option.id} value={option.id}>
+                        {option.name}
                     </option>
                 ))}
             </select>

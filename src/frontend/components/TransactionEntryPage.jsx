@@ -173,20 +173,20 @@ function TransactionEntryPage({ transaction = {}, paymentMethods = [], categorie
   const handlePaymentMethodChange = (e) => {
     console.log(`Payment method changed: ${e.target.value}`);
     const newId = parseInt(e.target.value);
-    const selectedMethod = paymentMethods.find(pm => pm.value === newId);
+    const selectedMethod = paymentMethods.find(pm => pm.id === newId);
     console.log(`Selected method: ${JSON.stringify(selectedMethod, null, 2)}`);
 
     // setFormData(prev => ({
     //   ...prev,
     //   paymentMethod: newId,
     //   payment_method_id: newId,
-    //   payment_method_name: selectedMethod ? selectedMethod.label : ''
+    //   payment_method_name: selectedMethod ? selectedMethod.name : ''
     // }));
 
     setTransaction(prev => ({
       ...prev,
       payment_method_id: newId,
-      payment_method_name: selectedMethod ? selectedMethod.label : ''
+      payment_method_name: selectedMethod ? selectedMethod.name : ''
     }));
   };
 
@@ -231,8 +231,8 @@ function TransactionEntryPage({ transaction = {}, paymentMethods = [], categorie
           >
             <option value="">Select payment method</option>
             {paymentMethods.map((method) => (
-              <option key={method.value} value={method.value}>
-                {method.label}
+              <option key={method.id} value={method.id}>
+                {method.name}
               </option>
             ))}
           </Form.Select>
@@ -248,8 +248,8 @@ function TransactionEntryPage({ transaction = {}, paymentMethods = [], categorie
           >
             { transaction.category_id === '' && <option value=''>Select Category</option>}
             {categories.map((category) => (
-              <option key={category.value} value={category.value}>
-                {category.label}
+              <option key={category.id} value={category.id}>
+                {category.name}
               </option>
             ))}
           </Form.Select>

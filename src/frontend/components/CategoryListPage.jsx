@@ -10,8 +10,8 @@ const CategoryListPage = ({
 }) => {
   const clickTimer = useRef(null);
 
-  const usedCategories = categories.filter(el => categoriesUsed.has(el.value));
-  const otherCategories = categories.filter(el => !categoriesUsed.has(el.value));
+  const usedCategories = categories.filter(el => categoriesUsed.has(el.id));
+  const otherCategories = categories.filter(el => !categoriesUsed.has(el.id));
 
   const handleCategoryClick = (categoryId) => {
     console.log(`Category clicked: ${clickTimer.current}`);
@@ -48,13 +48,13 @@ const CategoryListPage = ({
           <div className="scrollable-list">
             {usedCategories.map((category) => (
               <div
-                key={category.value}
+                key={category.id}
                 className="list-item"
-                onClick={() => handleCategoryClick(category.value)}
-                onDoubleClick={() => handleCategoryDoubleClick(category.value)}
+                onClick={() => handleCategoryClick(category.id)}
+                onDoubleClick={() => handleCategoryDoubleClick(category.id)}
               >
-                <span>{category.label}</span>
-                {transaction?.category_id === category.value && (
+                <span>{category.name}</span>
+                {transaction?.category_id === category.id && (
                   <span className="tick-icon">✓</span>
                 )}
               </div>
@@ -66,13 +66,13 @@ const CategoryListPage = ({
           <div className="scrollable-list">
             {otherCategories.map((category) => (
               <div
-                key={category.value}
+                key={category.id}
                 className="list-item"
-                onClick={() => handleCategoryClick(category.value)}
-                onDoubleClick={() => handleCategoryDoubleClick(category.value)}
+                onClick={() => handleCategoryClick(category.id)}
+                onDoubleClick={() => handleCategoryDoubleClick(category.id)}
               >
-                <span>{category.label}</span>
-                {transaction?.category_id === category.value && (
+                <span>{category.name}</span>
+                {transaction?.category_id === category.id && (
                   <span className="tick-icon">✓</span>
                 )}
               </div>
