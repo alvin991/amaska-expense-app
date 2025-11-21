@@ -131,6 +131,7 @@ app.get('/api/transactions', (req, res) => {
 
 // Create new transaction
 app.post('/api/transactions', (req, res) => {
+    console.log(`POST /api/transactions called with body: ${JSON.stringify(req.body, null, 2)}`);
     const { user_id, amount, notes, transaction_date, merchant, category_id, payment_method_id } = req.body;
     
     const db = new sqlite3.Database('./../db/database.db', sqlite3.OPEN_READWRITE, (err) => {
@@ -164,6 +165,7 @@ app.post('/api/transactions', (req, res) => {
 
 // Update existing transaction
 app.put('/api/transactions/:id', (req, res) => {
+    console.log(`PUT /api/transactions/${req.params.id} called with body: ${JSON.stringify(req.body, null, 2)}`);
     const { amount, notes, transaction_date, merchant, category_id, payment_method_id } = req.body;
     const transactionId = req.params.id;
     
@@ -205,36 +207,29 @@ app.put('/api/transactions/:id', (req, res) => {
 
 // Delete existing transaction
 app.delete('/api/transactions/:id', (req, res) => {
-    const transactionId = req.params.id;
-    
-    const db = new sqlite3.Database('./../db/database.db', sqlite3.OPEN_READWRITE, (err) => {
-        if (err) {
-            console.error('Error opening database:', err.message);
-            return res.status(500).json({ error: 'Failed to connect to the database' });
-        }
+    console.log(`DELETE /api/transactions/${req.params.id} called`);
+  const transactionId = req.params.id;
+  
+  const db = new sqlite3.Database('./../db/database.db', sqlite3.OPEN_READWRITE, (err) => {
+    if (err) {
+      console.error('Error opening database:', err.message);
+      return res.status(500).json({ error: 'Failed to connect to database' });
+    }
 
-        const sql = `
-            DELETE FROM expense_transactions 
-            WHERE id = ?
-        `;
-        
-        db.run(sql, [transactionId], 
-            function(err) {
-                if (err) {
-                    console.error('Error deleting transaction:', err.message);
-                    res.status(500).json({ error: 'Failed to delete transaction' });
-                } else if (this.changes === 0) {
-                    res.status(404).json({ error: 'Transaction not found' });
-                } else {
-                    res.json({ 
-                        message: 'Transaction deleted successfully',
-                        changes: this.changes 
-                    });
-                }
-                db.close();
-            }
-        );
+    const sql = 'DELETE FROM expense_transactions WHERE id = ?';
+    
+    db.run(sql, [transactionId], function(err) {
+      if (err) {
+        console.error('Error deleting transaction:', err.message);
+        res.status(500).json({ error: 'Failed to delete transaction' });
+      } else if (this.changes === 0) {
+        res.status(404).json({ error: 'Transaction not found' });
+      } else {
+        res.json({ message: 'Transaction deleted successfully' });
+      }
+      db.close();
     });
+  });
 });
 
 

@@ -77,9 +77,15 @@ CREATE TABLE payment_methods (
 
 INSERT INTO payment_methods (name, description) VALUES ('Cash', 'Cash Payment');
 INSERT INTO payment_methods (name, description) VALUES ('Debit', 'Debit Payment');
-INSERT INTO payment_methods (name, description) VALUES ('Alvin AVION', 'RBC Avion VISA (6776) - Household fixed expenses');
+INSERT INTO payment_methods (name, description) VALUES ('Alvin AVION (6776)', 'RBC Avion VISA (6776) - Household fixed expenses');
 INSERT INTO payment_methods (name, description) VALUES ('Ahbee AVION', 'RBC Avion VISA - Personal buying');
-INSERT INTO payment_methods (name, description) VALUES ('Alvin Walmart', 'CIBC MASTER (5457/1523) - Dine out');
-INSERT INTO payment_methods (name, description) VALUES ('Ahbee Walmart', 'CIBC MASTER (4830/4024)- Groceries');
-INSERT INTO payment_methods (name, description) VALUES ('Bebe WestJet', 'WestJet MASTER (3315) - All her expenses');
-INSERT INTO payment_methods (name, description) VALUES ('Costco', 'CIBC MASTER (5021) - Costco & gas');
+INSERT INTO payment_methods (name, description) VALUES ('Alvin Walmart (5457/1523)', 'CIBC MASTER (5457/1523) - Dine out');
+INSERT INTO payment_methods (name, description) VALUES ('Ahbee Walmart (4830/4024/9598)', 'CIBC MASTER (4830/4024)- Groceries');
+INSERT INTO payment_methods (name, description) VALUES ('Bebe WestJet (3315)', 'WestJet MASTER (3315) - All her expenses');
+INSERT INTO payment_methods (name, description) VALUES ('Costco (5021)', 'CIBC MASTER (5021) - Costco & gas');
+
+update payment_methods set name = 'Alvin AVION (6776)' where id = 3;
+update payment_methods set name = 'Alvin Walmart (5457/1523)' where id = 5;
+update payment_methods set name = 'Ahbee Walmart (4830/4024/9598)' where id = 6;
+update payment_methods set name = 'Bebe WestJet (3315)' where id = 7;
+update payment_methods set name = 'Costco (5021)' where id = 8;

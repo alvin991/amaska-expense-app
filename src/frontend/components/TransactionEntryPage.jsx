@@ -1,9 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Form, Container, Button, InputGroup } from 'react-bootstrap';
 import axios from 'axios';
 import ConfirmationModal from './MyConfirmBox';
 
-function MyForm({ paymentMethods = [], categories = [], transaction = null, onHide, onSuccess }) {
+export const DEFAULT_TRANSACTION = {
+  transaction_id: null,
+  amount: 0.0,
+  merchant: '',
+  category: '',
+  date: new Date().toISOString().split('T')[0],
+  notes: '',
+  category_id: '',
+  category_name: '',
+  payment_method_id: '',
+  payment_method_name: ''
+};
+
+function TransactionEntryPage({ transaction = {}, paymentMethods = [], categories = [], onNavigate, refreshData, onHide, setTransaction }) {
   const [formData, setFormData] = useState({
     amount: '',
     merchant: '',
@@ -16,36 +29,56 @@ function MyForm({ paymentMethods = [], categories = [], transaction = null, onHi
   const [isAmountFocused, setIsAmountFocused] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
+  // const computedTransaction = useMemo(() => {
+  //   console.log('ComputedTransaction');
+  //   return (transaction && Object.keys(transaction).length > 0)
+  // }, [transaction]);
+
   // Update form when transaction changes
+  // useEffect(() => {
+  //   console.log(`transaction: ${JSON.stringify(transaction, null, 2)}`);
+  //   if (transaction.transaction_id) {
+  //     console.log(`28`);
+  //     setFormData({
+  //       amount: transaction.amount || '',
+  //       merchant: transaction.merchant || '',
+  //       paymentMethod: transaction.payment_method_id || '',
+  //       category: transaction.category_id || '',
+  //       date: transaction.transaction_date?.split('T')[0] || '', // Format date for input
+  //       notes: transaction.notes || ''
+  //     });
+  //   } else {
+  //     console.log(`31`);
+  //     // Reset form when no transaction
+  //     setFormData({
+  //       amount: 0.00,
+  //       merchant: '',
+  //       paymentMethod: '',
+  //       category: '',
+  //       date: new Date().toISOString().split('T')[0],
+  //       notes: ''
+  //     });
+  //   }
+  // }, [transaction]);
   useEffect(() => {
-    if (transaction) {
-      setFormData({
-        amount: transaction.amount || '',
-        merchant: transaction.merchant || '',
-        paymentMethod: transaction.payment_method_id || '',
-        category: transaction.category_id || '',
-        date: transaction.transaction_date?.split('T')[0] || '', // Format date for input
-        notes: transaction.notes || ''
-      });
-    } else {
-      // Reset form when no transaction
-      setFormData({
-        amount: '',
-        merchant: '',
-        paymentMethod: '',
-        category: '',
-        date: new Date().toISOString().split('T')[0],
-        notes: ''
-      });
-    }
+    console.log(`transaction: ${JSON.stringify(transaction, null, 2)}`);
+    setFormData({
+      amount: transaction.amount || '',
+      merchant: transaction.merchant || '',
+      paymentMethod: transaction.payment_method_id || '',
+      category: transaction.category_id || '',
+      date: transaction.transaction_date?.split('T')[0] || new Date().toISOString().split('T')[0], // Format date for input
+      notes: transaction.notes || ''
+    });
   }, [transaction]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prevState => ({
-      ...prevState,
-      [name]: value
-    }));
+    // setFormData(prevState => ({
+    //   ...prevState,
+    //   [name]: value
+    // }));
+    setTransaction(prev => ({ ...prev, [name]: value }));
   };
 
   const handleAmountChange = (e) => {
@@ -57,10 +90,11 @@ function MyForm({ paymentMethods = [], categories = [], transaction = null, onHi
       v = parts[0] + '.' + parts.slice(1).join('');
       // Trim to max two fractional digits during input? keep flexible; we'll format on blur.
     }
-    setFormData(prev => ({
-      ...prev,
-      amount: v
-    }));
+    // setFormData(prev => ({
+    //   ...prev,
+    //   amount: v
+    // }));
+    setTransaction(prev => ({ ...prev, amount: v }));
   };
 
   const handleAmountFocus = () => setIsAmountFocused(true);
@@ -98,25 +132,25 @@ function MyForm({ paymentMethods = [], categories = [], transaction = null, onHi
         await axios.post('/api/transactions', payload);
       }
 
-      await onSuccess(); // Refresh data first
+      await refreshData(); // Refresh data first
       onHide();         // Then close modal
     } catch (error) {
       console.error('Error saving transaction:', error);
     }
   };
 
-  const handleDelete = () => {
-    if (!transaction?.transaction_id) return; // Nothing to delete
-    setShowConfirmModal(true); // Show the confirmation modal
+  const handleDelete = async () => {
+    if (!transaction?.transaction_id) return;
+    
+    setShowConfirmModal(true);
   };
 
   const handleConfirmDelete = async () => {
-    setShowConfirmModal(false); // Hide the modal
     try {
       await axios.delete(`/api/transactions/${transaction.transaction_id}`);
-      await onSuccess();  // Refresh data first
-      onHide();          // Then close modal
-      console.log('Item deleted!');
+      setShowConfirmModal(false);
+      await refreshData();
+      onHide();
     } catch (error) {
       console.error('Error deleting transaction:', error);
     }
@@ -129,6 +163,31 @@ function MyForm({ paymentMethods = [], categories = [], transaction = null, onHi
   const formatAmount = (value) => {
     if (!value) return '';
     return `$${Number(value).toFixed(2)}`;
+  };
+
+  const handleSelectClick = (e) => {
+    e.preventDefault();
+    onNavigate('categoryList');
+  };
+
+  const handlePaymentMethodChange = (e) => {
+    console.log(`Payment method changed: ${e.target.value}`);
+    const newId = parseInt(e.target.value);
+    const selectedMethod = paymentMethods.find(pm => pm.value === newId);
+    console.log(`Selected method: ${JSON.stringify(selectedMethod, null, 2)}`);
+
+    // setFormData(prev => ({
+    //   ...prev,
+    //   paymentMethod: newId,
+    //   payment_method_id: newId,
+    //   payment_method_name: selectedMethod ? selectedMethod.label : ''
+    // }));
+
+    setTransaction(prev => ({
+      ...prev,
+      payment_method_id: newId,
+      payment_method_name: selectedMethod ? selectedMethod.label : ''
+    }));
   };
 
   return (
@@ -166,9 +225,9 @@ function MyForm({ paymentMethods = [], categories = [], transaction = null, onHi
         <Form.Group className="mb-3">
           <Form.Label>Payment Method</Form.Label>
           <Form.Select
-            name="paymentMethod"
+            name="payment_method_id"
             value={formData.paymentMethod}
-            onChange={handleChange}
+            onChange={handlePaymentMethodChange}
           >
             <option value="">Select payment method</option>
             {paymentMethods.map((method) => (
@@ -182,11 +241,12 @@ function MyForm({ paymentMethods = [], categories = [], transaction = null, onHi
         <Form.Group className="mb-3">
           <Form.Label>Category</Form.Label>
           <Form.Select
-            name="category"
+            name="category_id"
             value={formData.category}
-            onChange={handleChange}
+            onMouseDown={handleSelectClick}
+            onChange={(e) => e.preventDefault()}
           >
-            <option value="">Select category</option>
+            { transaction.category_id === '' && <option value=''>Select Category</option>}
             {categories.map((category) => (
               <option key={category.value} value={category.value}>
                 {category.label}
@@ -199,7 +259,7 @@ function MyForm({ paymentMethods = [], categories = [], transaction = null, onHi
           <Form.Label>Date</Form.Label>
           <Form.Control
             type="date"
-            name="date"
+            name="transaction_date"
             value={formData.date}
             onChange={handleChange}
           />
@@ -219,13 +279,13 @@ function MyForm({ paymentMethods = [], categories = [], transaction = null, onHi
 
         <div className="d-grid gap-2 mb-3">
           <Button variant="primary" type="submit">
-            {transaction ? 'Update' : 'Create'} Transaction
+            {transaction.transaction_id ? 'Update' : 'Create'}
           </Button>
         </div>
 
         <div className="d-grid gap-2">
-          <Button variant="danger" type="button" style={{ display: transaction ? 'block' : 'none' }} onClick={handleDelete}>
-            Delete Transaction
+          <Button variant="danger" type="button" style={{ display: transaction.transaction_id ? 'block' : 'none' }} onClick={handleDelete}>
+            Delete
           </Button>
         </div>
       </Form>
@@ -241,4 +301,4 @@ function MyForm({ paymentMethods = [], categories = [], transaction = null, onHi
   );
 }
 
-export default MyForm;
+export default TransactionEntryPage;

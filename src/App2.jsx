@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import Modal from './frontend/ModalParent';
-import TransactionPage from './frontend/TransactionPage';
-import CategoryListPage from './frontend/CategoryListPage';
-import CategoryDetailsPage from './frontend/CategoryDetailsPage';
+import Modal from './frontend/components/ModalParent';
+import TransactionPage from './frontend/components/TransactionPage';
+import CategoryListPage from './frontend/components/CategoryListPage';
+import CategoryDetailsPage from './frontend/components/CategoryDetailsPage';
 
 const App = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);

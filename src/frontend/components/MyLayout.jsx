@@ -2,9 +2,13 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import DataTable from './DataTable';
 import DateGroupedTable from './DateGroupedTable.jsx';
-import MyModal from './MyModal';
+import MyModal from './MyModal.jsx';
 import PieChartWithCustomizedLabel from './PieChart1';
 import PieChartHasTextInside from './PieChart2';
+import ModalParent from './ModalParent';
+import TransactionPage from './TransactionPage';
+import Modal from 'react-bootstrap/Modal';
+import ModalBase from './ModalBase.jsx';
 
 function MyLayout() {
     const [users, setUsers] = useState([]);
@@ -22,6 +26,7 @@ function MyLayout() {
     const [leftToSpendData, setLeftToSpendData] = useState([]);
     const [leftToSpend, setLeftToSpend] = useState('0.00');
     const [monthName, setMonthName] = useState('');
+    const [categoriesUsed, setCategoriesUsed] = useState(new Set());
 
     // local variables
     let BudgetByMonth = 2000;
@@ -100,6 +105,8 @@ function MyLayout() {
             // console.log(`Fetched formattedTransactions: ${JSON.stringify(formattedTransactions, null, 2)}`);
 
             setTransactions(formattedTransactions);
+
+            setCategoriesUsed(new Set(formattedTransactions.map(tx => tx.category_id)));
 
             // setPeriodTotalAmount(response.data.reduce((accumulator, currentValue) => {
             //     return accumulator + currentValue.amount;
@@ -204,6 +211,7 @@ function MyLayout() {
     }, []);
 
     const handleRowDoubleClick = (transactionId) => {
+        console.log(`Row double-clicked: ${transactionId}`)
         // If transactionId is null, it's a new transaction
         const transaction = transactionId ?
             transactions.find(t => t.transaction_id === transactionId) :
@@ -281,14 +289,55 @@ function MyLayout() {
                         className="position-fixed"
                     />
                 </div>
-                <MyModal
+                <Modal
+                    show={showModal}
+                    onHide={() => setShowModal(false)}
+                    dialogClassName="modal-90w"
+                    size='lg'
+                    centered
+                    backdrop="static"
+                    keyboard={false}
+                >
+                    <Modal.Header closeButton>
+                        <Modal.Title>
+                            Testing Modal Title
+                        </Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body>
+                        <ModalBase 
+                            paymentMethods={paymentMethods}
+                            categories={categories}
+                            propTransaction={selectedTransaction}
+                            categoriesUsed={categoriesUsed}
+                            isOpen={showModal}
+                            refreshData={refreshData}
+                            onHide={() => setShowModal(false)}
+                        />
+                    </Modal.Body>
+                </Modal>
+                {/* <MyModal
                     show={showModal}
                     onHide={() => setShowModal(false)}
                     transaction={selectedTransaction}
                     paymentMethods={paymentMethods}
                     categories={categories}
                     onSuccess={refreshData}
-                />
+                /> */}
+                {/* <ModalParent
+                    size='lg'
+                    centered
+                    backdrop="static"
+                    keyboard={false}
+                    title={` ${selectedTransaction ? 'Edit' : 'New'} Transaction `}
+                    isOpen={showModal}                    
+                    onClose={() => setShowModal(false)}
+                    onSuccess={refreshData}
+                    transaction={selectedTransaction}
+                    paymentMethods={paymentMethods}
+                    categories={categories}
+                    categoriesUsed={categoriesUsed}
+                    currentPage="transaction"
+                /> */}
             </div>
         </div>
     );

@@ -1,0 +1,94 @@
+.category-list-page {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.lists-container {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.list-section h3 {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.scrollable-list {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  height: 300px;
+  overflow-y: auto;
+  background-color: #f9f9f9;
+}
+
+.list-item {
+  padding: 12px 15px;
+  border-bottom: 1px solid #e0e0e0;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.list-item:last-child {
+  border-bottom: none;
+}
+
+.list-item:hover {
+  background-color: #e8f4f8;
+}
+
+.category-name {
+  font-weight: 500;
+  color: #333;
+}
+
+.category-meta {
+  font-size: 12px;
+  color: #999;
+}
+
+.nav-button {
+  padding: 10px 20px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  width: fit-content;
+}
+
+.nav-button:hover {
+  background-color: #0056b3;
+}
+
+/* Scrollbar styling */
+.scrollable-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scrollable-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.scrollable-list::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.scrollable-list::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.tick-icon {
+  color: #28a745;
+  font-weight: bold;
+  font-size: 18px;
+}
