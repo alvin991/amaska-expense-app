@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { Button } from 'react-bootstrap';
 import './CategoryListPage.css';
+import { DEFAULT_CATEGORY } from './CategoryDetailsPage'; // <-- import DEFAULT_CATEGORY
 
 const CategoryListPage = ({
   categories,
@@ -37,11 +38,11 @@ const CategoryListPage = ({
     }
     // Your double-click logic here
     console.log(`redirect request to category details for id: ${categoryId}`);
-    onNavigate('categoryDetails');
+    onNavigate('categoryDetails', categories.find(cat => cat.id === categoryId));
   };
 
   const handleCreateCategory = () => {
-    onNavigate('categoryDetails');
+    onNavigate('categoryDetails', DEFAULT_CATEGORY);
   };
 
   return (

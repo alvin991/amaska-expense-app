@@ -5,15 +5,27 @@ import ModalStateManager from '../services/ModalStateManager';
 import { PAGE_TYPES } from '../types/PageConfig';
 import TransactionEntryPage, { DEFAULT_TRANSACTION } from './TransactionEntryPage';
 import CategoryListPage from './CategoryListPage';
-import CategoryDetailsPage from './CategoryDetailsPage';
+import CategoryDetailsPage, { DEFAULT_CATEGORY } from './CategoryDetailsPage'; // <-- import DEFAULT_CATEGORY
 
-const ModalBase = ( { paymentMethods = [], categories = [], propTransaction = DEFAULT_TRANSACTION, categoriesUsed = [], isOpen = false, refreshTransactions, refreshCategories, refreshPaymentMethods, onHide } ) => {
+const ModalBase = ({
+  paymentMethods = [],
+  categories = [],
+  propTransaction = DEFAULT_TRANSACTION,
+  categoriesUsed = [],
+  isOpen = false,
+  refreshTransactions,
+  refreshCategories,
+  refreshPaymentMethods,
+  onHide
+}) => {
   const effectiveTransaction = propTransaction ?? DEFAULT_TRANSACTION;
 
   const [currentPage, setCurrentPage] = useState('transaction');
-  const [stateManager] = useState( () => new ModalStateManager(PAGE_TYPES.TRANSACTION, propTransaction) );
+  const [stateManager] = useState(() => new ModalStateManager(PAGE_TYPES.TRANSACTION, propTransaction));
   const [state, setState] = useState(stateManager.getState());
   const [transaction, setTransaction] = useState(effectiveTransaction);
+  const [propCategory, setPropCategory] = useState(DEFAULT_CATEGORY); // <-- add this line
+
   // Subscribe to state changes
   useEffect(() => {
     const unsubscribe = stateManager.subscribe(setState);
@@ -28,7 +40,7 @@ const ModalBase = ( { paymentMethods = [], categories = [], propTransaction = DE
   }, [isOpen]);
 
   // - update transaction
-  const updateCategoryId = ( CategoryId ) => {
+  const updateCategoryId = (CategoryId) => {
     // const newTransaction = JSON.parse(JSON.stringify(prev));
     // newTransaction['category_id'] = updates;
     // newTransaction['category_name'] = categories.find(cat => cat.id === updates).name;
@@ -36,6 +48,18 @@ const ModalBase = ( { paymentMethods = [], categories = [], propTransaction = DE
     console.log(`prev transaction: ${JSON.stringify(transaction, null, 2)}`);
     setTransaction(prev => ({ ...prev, category_id: CategoryId, category_name: categories.find(cat => cat.id === CategoryId).name }));
     console.log(`Updated transaction: ${JSON.stringify(transaction, null, 2)}`);
+  };
+
+  // Enhanced navigation handler
+  const handleNavigate = (page, categoryObj = null) => {
+    setCurrentPage(page);
+    if (page === 'categoryDetails') {
+      if (categoryObj) {
+        setPropCategory(categoryObj);
+      } else {
+        setPropCategory(DEFAULT_CATEGORY);
+      }
+    }
   };
 
   const renderPageContent = () => {
@@ -46,7 +70,7 @@ const ModalBase = ( { paymentMethods = [], categories = [], propTransaction = DE
                 paymentMethods={paymentMethods}
                 categories={categories}
                 transaction={transaction}
-                onNavigate={setCurrentPage}
+                onNavigate={handleNavigate}
                 refreshTransactions={refreshTransactions}
                 onHide={onHide}
                 setTransaction={setTransaction}
@@ -57,14 +81,14 @@ const ModalBase = ( { paymentMethods = [], categories = [], propTransaction = DE
                 categoriesUsed={categoriesUsed}
                 transaction={transaction}
                 updateCategoryId={updateCategoryId}
-                onNavigate={setCurrentPage}
+                onNavigate={handleNavigate}
                 setTransaction={setTransaction}
               />;
     case 'categoryDetails':
         console.log(`redirecting to category details page`);
         return <CategoryDetailsPage 
-                propCategory={categories.find(cat => cat.id === transaction.category_id)}
-                onNavigate={setCurrentPage}
+                propCategory={propCategory}
+                onNavigate={handleNavigate}
                 refreshCategories={refreshCategories}
               />;
     default:

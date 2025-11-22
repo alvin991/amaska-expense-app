@@ -2,7 +2,7 @@ import { useState } from 'react';
 import axios from 'axios';
 import { Form, Button, Container, Row, Col } from 'react-bootstrap';
 
-const DEFAULT_CATEGORY = {
+export const DEFAULT_CATEGORY = {
   id: null,
   name: '',
   description: '',
