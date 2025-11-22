@@ -1,13 +1,29 @@
 import { useState } from 'react';
+import axios from 'axios';
 import { Form, Button, Container, Row, Col } from 'react-bootstrap';
 
-const CategoryDetailsPage = ({ onNavigate, propCategory = {} }) => {
+const DEFAULT_CATEGORY = {
+  id: null,
+  name: '',
+  description: '',
+  color: '',
+  icon: ''
+};
+
+const CategoryDetailsPage = ({ propCategory = {}, onNavigate, refreshCategories }) => {
+  const category =
+    propCategory && Object.keys(propCategory).length > 0
+      ? propCategory
+      : DEFAULT_CATEGORY;
+
   const [formData, setFormData] = useState({
-    name: propCategory.name || '',
-    notes: propCategory.description || '',
-    color: propCategory.color || '#2196f3',
-    icon: propCategory.icon || ''
+    name: category.name || '',
+    notes: category.description || '',
+    color: category.color || '#2196f3',
+    icon: category.icon || ''
   });
+
+  const [deleting, setDeleting] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -17,11 +33,41 @@ const CategoryDetailsPage = ({ onNavigate, propCategory = {} }) => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: handle save logic here
-    console.log('Category saved:', formData);
-    onNavigate('categoryList');
+    try {
+      const payload = {
+        name: formData.name,
+        description: formData.notes,
+        color: formData.color,
+        icon: formData.icon
+      };
+
+      if (category?.id) {
+        await axios.put(`/api/categories/${category.id}`, payload);
+      } else {
+        await axios.post('/api/categories', payload);
+      }
+
+      await refreshCategories();
+      onNavigate('categoryList');
+    } catch (error) {
+      console.error('Error saving transaction:', error);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!category?.id) return;
+    setDeleting(true);
+    try {
+      await axios.delete(`/api/categories/${category.id}`);
+      await refreshCategories();
+      onNavigate('categoryList');
+    } catch (error) {
+      console.error('Error deleting category:', error);
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
@@ -76,7 +122,7 @@ const CategoryDetailsPage = ({ onNavigate, propCategory = {} }) => {
             </Form.Group>
           </Col>
         </Row>
-        <div className="d-flex gap-2">
+        <div className="d-flex gap-2 mb-2">
           <Button variant="primary" type="submit">
             Save
           </Button>
@@ -84,6 +130,16 @@ const CategoryDetailsPage = ({ onNavigate, propCategory = {} }) => {
             Cancel
           </Button>
         </div>
+        {category?.id && (
+          <Button
+            variant="danger"
+            className="w-100"
+            onClick={handleDelete}
+            disabled={deleting}
+          >
+            {deleting ? 'Deleting...' : 'Delete Category'}
+          </Button>
+        )}
       </Form>
     </Container>
   );

@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { Button } from 'react-bootstrap';
 import './CategoryListPage.css';
 
 const CategoryListPage = ({
@@ -36,6 +37,10 @@ const CategoryListPage = ({
     }
     // Your double-click logic here
     console.log(`redirect request to category details for id: ${categoryId}`);
+    onNavigate('categoryDetails');
+  };
+
+  const handleCreateCategory = () => {
     onNavigate('categoryDetails');
   };
 
@@ -80,6 +85,14 @@ const CategoryListPage = ({
           </div>
         </div>
       </div>
+      <Button
+        variant="success"
+        className="mt-3 w-100"
+        size="lg"
+        onClick={handleCreateCategory}
+      >
+        New Category
+      </Button>
     </div>
   );
 };

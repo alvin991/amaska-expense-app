@@ -7,7 +7,7 @@ import TransactionEntryPage, { DEFAULT_TRANSACTION } from './TransactionEntryPag
 import CategoryListPage from './CategoryListPage';
 import CategoryDetailsPage from './CategoryDetailsPage';
 
-const ModalBase = ( { paymentMethods = [], categories = [], propTransaction = DEFAULT_TRANSACTION, categoriesUsed = [], isOpen = false, refreshData, onHide } ) => {
+const ModalBase = ( { paymentMethods = [], categories = [], propTransaction = DEFAULT_TRANSACTION, categoriesUsed = [], isOpen = false, refreshTransactions, refreshCategories, refreshPaymentMethods, onHide } ) => {
   const effectiveTransaction = propTransaction ?? DEFAULT_TRANSACTION;
 
   const [currentPage, setCurrentPage] = useState('transaction');
@@ -47,7 +47,7 @@ const ModalBase = ( { paymentMethods = [], categories = [], propTransaction = DE
                 categories={categories}
                 transaction={transaction}
                 onNavigate={setCurrentPage}
-                refreshData={refreshData}
+                refreshTransactions={refreshTransactions}
                 onHide={onHide}
                 setTransaction={setTransaction}
               />;
@@ -64,7 +64,8 @@ const ModalBase = ( { paymentMethods = [], categories = [], propTransaction = DE
         console.log(`redirecting to category details page`);
         return <CategoryDetailsPage 
                 propCategory={categories.find(cat => cat.id === transaction.category_id)}
-                onNavigate={setCurrentPage} 
+                onNavigate={setCurrentPage}
+                refreshCategories={refreshCategories}
               />;
     default:
         return null;

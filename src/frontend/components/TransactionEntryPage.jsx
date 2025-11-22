@@ -16,7 +16,7 @@ export const DEFAULT_TRANSACTION = {
   payment_method_name: ''
 };
 
-function TransactionEntryPage({ transaction = {}, paymentMethods = [], categories = [], onNavigate, refreshData, onHide, setTransaction }) {
+function TransactionEntryPage({ transaction = {}, paymentMethods = [], categories = [], onNavigate, refreshTransactions, onHide, setTransaction }) {
   const [formData, setFormData] = useState({
     amount: '',
     merchant: '',
@@ -132,7 +132,7 @@ function TransactionEntryPage({ transaction = {}, paymentMethods = [], categorie
         await axios.post('/api/transactions', payload);
       }
 
-      await refreshData(); // Refresh data first
+      await refreshTransactions(); // Refresh data first
       onHide();         // Then close modal
     } catch (error) {
       console.error('Error saving transaction:', error);
@@ -149,7 +149,7 @@ function TransactionEntryPage({ transaction = {}, paymentMethods = [], categorie
     try {
       await axios.delete(`/api/transactions/${transaction.transaction_id}`);
       setShowConfirmModal(false);
-      await refreshData();
+      await refreshTransactions();
       onHide();
     } catch (error) {
       console.error('Error deleting transaction:', error);

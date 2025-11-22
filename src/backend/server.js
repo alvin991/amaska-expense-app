@@ -60,6 +60,107 @@ app.get('/api/categories', (req, res) => {
     });
 });
 
+// Create new Category
+app.post('/api/categories', (req, res) => {
+    console.log(`POST /api/categories called with body: ${JSON.stringify(req.body, null, 2)}`);
+    const { name, description, color, icon } = req.body;
+    
+    const db = new sqlite3.Database('./../db/database.db', sqlite3.OPEN_READWRITE, (err) => {
+        if (err) {
+            console.error('Error opening database:', err.message);
+            return res.status(500).json({ error: 'Failed to connect to the database' });
+        }
+
+        const sql = `
+            INSERT INTO expense_categories 
+            (name, description, color, icon)
+            VALUES (?, ?, ?, ?)
+        `;
+        
+        db.run(sql, [name, description, color, icon], 
+            function(err) {
+                if (err) {
+                    console.error('Error creating category:', err.message);
+                    res.status(500).json({ error: 'Failed to create category' });
+                } else {
+                    res.status(201).json({ 
+                        message: 'Category created successfully',
+                        id: this.lastID 
+                    });
+                }
+                db.close();
+            }
+        );
+    });
+});
+
+// Update existing Category
+app.put('/api/categories/:id', (req, res) => {
+    console.log(`PUT /api/categories/${req.params.id} called with body: ${JSON.stringify(req.body, null, 2)}`);
+    const { name, description, color, icon } = req.body;
+    const categoryId = req.params.id;
+    
+    const db = new sqlite3.Database('./../db/database.db', sqlite3.OPEN_READWRITE, (err) => {
+        if (err) {
+            console.error('Error opening database:', err.message);
+            return res.status(500).json({ error: 'Failed to connect to the database' });
+        }
+
+        const sql = `
+            UPDATE expense_categories 
+            SET name = ?,
+                description = ?,
+                color = ?,
+                icon = ?
+            WHERE id = ?
+        `;
+        
+        db.run(sql, [name, description, color, icon, categoryId], 
+            function(err) {
+                if (err) {
+                    console.error('Error updating category:', err.message);
+                    res.status(500).json({ error: 'Failed to update category' });
+                } else if (this.changes === 0) {
+                    res.status(404).json({ error: 'Category not found' });
+                } else {
+                    res.json({ 
+                        message: 'Category updated successfully',
+                        changes: this.changes 
+                    });
+                }
+                db.close();
+            }
+        );
+    });
+});
+
+// Delete existing Category
+app.delete('/api/categories/:id', (req, res) => {
+    console.log(`DELETE /api/categories/${req.params.id} called`);
+  const categoryId = req.params.id;
+  
+  const db = new sqlite3.Database('./../db/database.db', sqlite3.OPEN_READWRITE, (err) => {
+    if (err) {
+      console.error('Error opening database:', err.message);
+      return res.status(500).json({ error: 'Failed to connect to database' });
+    }
+
+    const sql = 'DELETE FROM expense_categories WHERE id = ?';
+    
+    db.run(sql, [categoryId], function(err) {
+      if (err) {
+        console.error('Error deleting category:', err.message);
+        res.status(500).json({ error: 'Failed to delete category' });
+      } else if (this.changes === 0) {
+        res.status(404).json({ error: 'Category not found' });
+      } else {
+        res.json({ message: 'Category deleted successfully' });
+      }
+      db.close();
+    });
+  });
+});
+
 app.get('/api/payment_methods', (req, res) => {
     const db = new sqlite3.Database('./../db/database.db', sqlite3.OPEN_READONLY, (err) => {
         if (err) {

@@ -168,8 +168,14 @@ function MyLayout() {
         }
     };
 
-    const refreshData = async () => {
+    const refreshTransactions = async () => {
         await fetchTransactions();
+    };
+    const refreshCategories = async () => {
+        await fetchCategories();
+    };
+    const refreshPaymentMethods = async () => {
+        await fetchPaymentMethods();
     };
 
     useEffect(() => {
@@ -298,7 +304,9 @@ function MyLayout() {
                             propTransaction={selectedTransaction}
                             categoriesUsed={categoriesUsed}
                             isOpen={showModal}
-                            refreshData={refreshData}
+                            refreshTransactions={refreshTransactions}
+                            refreshCategories={refreshCategories}
+                            refreshPaymentMethods={refreshPaymentMethods}
                             onHide={() => setShowModal(false)}
                         />
                     </Modal.Body>
@@ -309,7 +317,7 @@ function MyLayout() {
                     transaction={selectedTransaction}
                     paymentMethods={paymentMethods}
                     categories={categories}
-                    onSuccess={refreshData}
+                    onSuccess={refreshTransactions}
                 /> */}
                 {/* <ModalParent
                     size='lg'
@@ -319,7 +327,7 @@ function MyLayout() {
                     title={` ${selectedTransaction ? 'Edit' : 'New'} Transaction `}
                     isOpen={showModal}                    
                     onClose={() => setShowModal(false)}
-                    onSuccess={refreshData}
+                    onSuccess={refreshTransactions}
                     transaction={selectedTransaction}
                     paymentMethods={paymentMethods}
                     categories={categories}

@@ -9,9 +9,9 @@ INSERT INTO users (username, email) VALUES ('alvin', 'alvin@amaska.com');
 INSERT INTO users (username, email) VALUES ('abbie', 'abbie@amaska.com');
 INSERT INTO users (username, email) VALUES ('annabelle', 'annabelle@amaska.com');
 
-UPDATE users set email = 'alvin@amaska.ca' where username = 'alvin';
-UPDATE users set email = 'abbie@amaska.ca' where username = 'abbie';
-UPDATE users set email = 'annabelle@amaska.ca' where username = 'annabelle';
+UPDATE users SET email = 'alvin@amaska.ca' WHERE username = 'alvin';
+UPDATE users SET email = 'abbie@amaska.ca' WHERE username = 'abbie';
+UPDATE users SET email = 'annabelle@amaska.ca' WHERE username = 'annabelle';
 
 SELECT * FROM users;
 
@@ -68,6 +68,9 @@ INSERT INTO expense_categories (name, description) VALUES ('ANNABELLE', 'ANNABEL
 INSERT INTO expense_categories (name, description) VALUES ('HOUSEHOLD', 'HOUSEHOLD EXPENSES');
 INSERT INTO expense_categories (name, description) VALUES ('ENTERTAINMENT', 'ENTERTAINMENT EXPENSES');
 
+ALTER TABLE expense_categories ADD COLUMN color VARCHAR(7);
+ALTER TABLE expense_categories ADD COLUMN icon VARCHAR(100);
+
 DROP TABLE if exists payment_method;
 CREATE TABLE payment_methods (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -84,8 +87,8 @@ INSERT INTO payment_methods (name, description) VALUES ('Ahbee Walmart (4830/402
 INSERT INTO payment_methods (name, description) VALUES ('Bebe WestJet (3315)', 'WestJet MASTER (3315) - All her expenses');
 INSERT INTO payment_methods (name, description) VALUES ('Costco (5021)', 'CIBC MASTER (5021) - Costco & gas');
 
-update payment_methods set name = 'Alvin AVION (6776)' where id = 3;
-update payment_methods set name = 'Alvin Walmart (5457/1523)' where id = 5;
-update payment_methods set name = 'Ahbee Walmart (4830/4024/9598)' where id = 6;
-update payment_methods set name = 'Bebe WestJet (3315)' where id = 7;
-update payment_methods set name = 'Costco (5021)' where id = 8;
+UPDATE payment_methods SET name = 'Alvin AVION (6776)' WHERE id = 3;
+UPDATE payment_methods SET name = 'Alvin Walmart (5457/1523)' WHERE id = 5;
+UPDATE payment_methods SET name = 'Ahbee Walmart (4830/4024/9598)' WHERE id = 6;
+UPDATE payment_methods SET name = 'Bebe WestJet (3315)' WHERE id = 7;
+UPDATE payment_methods SET name = 'Costco (5021)' WHERE id = 8;
