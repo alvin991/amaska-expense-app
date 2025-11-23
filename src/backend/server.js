@@ -1,6 +1,25 @@
 const express = require('express');
 const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
+const fs = require('fs');
+const path = require('path');
+
+const dbPath = path.join(__dirname, '../../db/database.db');
+const sqlPath = path.join(__dirname, '../../db/statements.sql');
+
+// If database does not exist, create and initialize it
+if (!fs.existsSync(dbPath)) {
+  const db = new sqlite3.Database(dbPath);
+  const initSql = fs.readFileSync(sqlPath, 'utf8');
+  db.exec(initSql, (err) => {
+    if (err) {
+      console.error('Error initializing database:', err);
+    } else {
+      console.log('Database initialized successfully.');
+    }
+    db.close();
+  });
+}
 
 const app = express();
 
