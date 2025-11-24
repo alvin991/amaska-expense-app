@@ -4,8 +4,8 @@ const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs');
 const path = require('path');
 
-const dbPath = path.join(__dirname, '../../db/database.db');
-const sqlPath = path.join(__dirname, '../../db/statements.sql');
+const dbPath = path.join(__dirname, './../db/database.db');
+const sqlPath = path.join(__dirname, './../db/statements.sql');
 
 // If database does not exist, create and initialize it
 if (!fs.existsSync(dbPath)) {
@@ -24,8 +24,10 @@ if (!fs.existsSync(dbPath)) {
 const app = express();
 
 const corsOptions = {
-    origin: 'http://localhost:5173', // Adjust this to your frontend's origin
-    optionsSuccessStatus: 200
+  origin: process.env.NODE_ENV === 'production'
+    ? 'http://localhost:8080'
+    : 'http://localhost:5173',
+  optionsSuccessStatus: 200
 };
 app.use(cors(corsOptions));
 
@@ -352,6 +354,13 @@ app.delete('/api/transactions/:id', (req, res) => {
   });
 });
 
+// Serve static files under /amaska-app
+app.use('/amaska-app', express.static(path.join(__dirname, 'public')));
+
+// SPA fallback for client-side routing
+app.get('/amaska-app/*rest', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 app.listen(8080, () => {
     console.log('Server is running on http://localhost:8080');

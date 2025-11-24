@@ -251,13 +251,13 @@ function MyLayout() {
             <div className="row line-break" style={{ height: '2vh', width: '100vw' }} />
             <div id="middle-panel" className="row d-flex justify-content-center" style={{ height: '30vh', width: '100vw' }}>
                 <div className='col-md-4'>
-                    {/* <PieChartHasTextInside chartData={leftToSpendData} heading='LEFT TO SPEND' centerLabel={ '$' + leftToSpend} /> */}
+                    <PieChartHasTextInside chartData={leftToSpendData} heading='LEFT TO SPEND' centerLabel={ '$' + leftToSpend} />
                 </div>
                 <div className='col-md-4'>
-                    {/* <PieChartWithCustomizedLabel chartData={chartDataByCategory} heading='CATEGORY' /> */}
+                    <PieChartWithCustomizedLabel chartData={chartDataByCategory} heading='CATEGORY' />
                 </div>
                 <div className='col-md-4'>
-                    {/* <PieChartWithCustomizedLabel chartData={chartDataByPaymentMethod} heading='PAY BY' /> */}
+                    <PieChartWithCustomizedLabel chartData={chartDataByPaymentMethod} heading='PAY BY' />
                 </div>
             </div>
             <div className="row line-break" style={{ height: '2vh', width: '100vw' }} />

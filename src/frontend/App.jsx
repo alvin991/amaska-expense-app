@@ -1,6 +1,6 @@
 import './App.css'
-import MyLayout from './frontend/components/MyLayout.jsx';
-import CategoryModal from './frontend/components/CategoryModal.jsx';
+import MyLayout from './components/MyLayout.jsx';
+import CategoryModal from './components/CategoryModal.jsx';
 
 function App() {
     return (
