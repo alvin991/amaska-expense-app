@@ -19,13 +19,11 @@ WORKDIR /app/src/backend
 # Copy backend package files and install deps (inside container)
 COPY src/backend/package*.json ./
 RUN npm install
-
-# Ensure native modules (like sqlite3) are built for this image
 RUN npm rebuild sqlite3 --build-from-source
 
-# Copy backend source and db
+# Copy backend source and db schema (but not an existing database.db)
 COPY src/backend ./
-COPY src/db /app/src/db
+COPY src/db/statements.sql /app/src/db/statements.sql
 
 # Copy built frontend into backend public folder
 COPY --from=frontend-build /app/src/frontend/dist ./public
