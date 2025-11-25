@@ -32,7 +32,7 @@ function MyLayout() {
 
     // NEW: year/month state
     const today = new Date();
-    console.log(`35`);
+
     const [currentYear, setCurrentYear] = useState(today.getFullYear());
     const [currentMonth, setCurrentMonth] = useState(today.getMonth()); // 0-based
 
@@ -151,7 +151,6 @@ function MyLayout() {
 
     useEffect(() => {
         const today = new Date();
-        console.log(`154`);
         const monthNameStr = today.toLocaleString('default', { month: 'long' });
         const year = today.getFullYear();
         setMonthName(`${monthNameStr}, ${year}`);
@@ -196,7 +195,6 @@ function MyLayout() {
     };
 
     const handleDateDoubleClick = () => {
-        console.log('Date header double-clicked for changing month');
         setShowMonthPicker(true);
     };
 
