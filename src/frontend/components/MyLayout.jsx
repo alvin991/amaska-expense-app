@@ -9,6 +9,7 @@ import ModalParent from './ModalParent';
 import TransactionPage from './TransactionPage';
 import Modal from 'react-bootstrap/Modal';
 import ModalBase from './ModalBase.jsx';
+import MonthPickerPanel from './MonthPickerPanel.jsx';
 
 function MyLayout() {
     const [users, setUsers] = useState([]);
@@ -27,13 +28,19 @@ function MyLayout() {
     const [leftToSpend, setLeftToSpend] = useState('0.00');
     const [monthName, setMonthName] = useState('');
     const [categoriesUsed, setCategoriesUsed] = useState(new Set());
+    const [showMonthPicker, setShowMonthPicker] = useState(false);
+
+    // NEW: year/month state
+    const today = new Date();
+    console.log(`35`);
+    const [currentYear, setCurrentYear] = useState(today.getFullYear());
+    const [currentMonth, setCurrentMonth] = useState(today.getMonth()); // 0-based
 
     // local variables
     let BudgetByMonth = 2000;
-    let period = '2024-06'; // YYYY-MM format
-    const today = new Date(), currentYear = today.getFullYear(), currentMonth = today.getMonth();
+    let period = '2024-06'; // YYYY-MM format (can be updated later)
     const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
-    const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
+    const lastDayOfMonth  = new Date(currentYear, currentMonth + 1, 0);
 
     // call APIs to load data
     // fetch users from API
@@ -72,78 +79,49 @@ function MyLayout() {
         }
     };
 
-    // fetch transactions from API
+    // fetch transactions from API (uses currentYear/currentMonth via first/lastDayOfMonth)
     const fetchTransactions = async () => {
         try {
             const queryParams = {
                 start_date: firstDayOfMonth.toISOString().split('T')[0],
-                end_date: lastDayOfMonth.toISOString().split('T')[0],
-            }
-            const response = await axios.get('/api/transactions', { params: queryParams}); // use relative URL so vite proxy handles it
+                end_date:   lastDayOfMonth.toISOString().split('T')[0],
+            };
+            const response = await axios.get('/api/transactions', { params: queryParams });
 
-            // console.log(`Fetched response: ${JSON.stringify(response, null, 2)}`);
-
-            // Format dates in the full transaction data
             const formattedTransactions = response.data.map(tx => ({
                 ...tx,
-                transaction_date: tx.transaction_date ?
-                    new Date(tx.transaction_date).toISOString().split('T')[0] : ''
+                transaction_date: tx.transaction_date
+                    ? new Date(tx.transaction_date).toISOString().split('T')[0]
+                    : ''
             }));
 
-            // console.log(`Fetched formattedTransactions: ${JSON.stringify(formattedTransactions, null, 2)}`);
-
             setTransactions(formattedTransactions);
-
             setCategoriesUsed(new Set(formattedTransactions.map(tx => tx.category_id)));
 
-            // setPeriodTotalAmount(response.data.reduce((accumulator, currentValue) => {
-            //     return accumulator + currentValue.amount;
-            // }, 0)); // The initial value of the accumulator is 0)
-
-            // Calculate totals directly
             const totalAmount = response.data.reduce((acc, tx) => acc + tx.amount, 0);
             const leftToSpendValue = (BudgetByMonth - totalAmount).toFixed(2);
 
             setPeriodTotalAmount(totalAmount.toFixed(2));
             setLeftToSpend(leftToSpendValue);
-
-            // Use the freshly calculated values here, not state!
             setLeftToSpendData([
                 { name: 'Left to Spend', value: Number(leftToSpendValue), fill: '#00C49F' },
-                { name: 'Spent', value: Number(totalAmount), fill: '#FF8042' }
+                { name: 'Spent',        value: Number(totalAmount),      fill: '#FF8042' }
             ]);
-            // console.log(`leftToSpendData: ${JSON.stringify([
-            //     { name: 'Left to Spend', value: Number(leftToSpendValue), fill: '#00C49F' },
-            //     { name: 'Spent', value: Number(totalAmount), fill: '#FF8042' }
-            // ])}`);
 
             function formatData(responseData, groupByField) {
                 let result = responseData.reduce((accumulator, currentItem) => {
                     const key = currentItem[groupByField];
                     const value = currentItem.amount;
-
-                    if (!accumulator[key]) {
-                        accumulator[key] = 0; // Initialize the sum for a new key
-                    }
-                    accumulator[key] += value; // Add the current item's value to the key's sum
-
+                    if (!accumulator[key]) accumulator[key] = 0;
+                    accumulator[key] += value;
                     return accumulator;
-                }, {})
-
-                result = Array.from(Object.entries(result), ([name, value]) => ({ name, value }))
-
+                }, {});
+                result = Array.from(Object.entries(result), ([name, value]) => ({ name, value }));
                 result.forEach(item => {
-                    item.fill = '#' + Math.floor(Math.random()*16777215).toString(16); // random color
+                    item.fill = '#' + Math.floor(Math.random() * 16777215).toString(16);
                 });
-
                 return result;
             }
-
-            setChartDataByCategory(response.data.map(tx => ({
-                name: tx.category_name,
-                value: tx.amount,
-                fill: '#' + Math.floor(Math.random()*16777215).toString(16) // random color
-            })));
 
             setChartDataByCategory(formatData(response.data, 'category_name'));
             setChartDataByPaymentMethod(formatData(response.data, 'payment_method_name'));
@@ -151,16 +129,15 @@ function MyLayout() {
 
             const filtered = formattedTransactions.map(tx => ({
                 transaction_id: tx.transaction_id,
-                date: tx.transaction_date,
-                amount: tx.amount,
-                merchant: tx.merchant,
-                category: tx.category_name,
-                paymentMethod: tx.payment_method_name,
-                _hidden: ['transaction_id']
+                date:           tx.transaction_date,
+                amount:         tx.amount,
+                merchant:       tx.merchant,
+                category:       tx.category_name,
+                paymentMethod:  tx.payment_method_name,
+                _hidden:        ['transaction_id']
             }));
 
             setFilteredTransactions(filtered);
-            // console.log('Transactions loaded:', filtered.length);
         } catch (error) {
             setError(error.message);
         } finally {
@@ -168,23 +145,16 @@ function MyLayout() {
         }
     };
 
-    const refreshTransactions = async () => {
-        await fetchTransactions();
-    };
-    const refreshCategories = async () => {
-        await fetchCategories();
-    };
-    const refreshPaymentMethods = async () => {
-        await fetchPaymentMethods();
-    };
+    const refreshTransactions      = async () => { await fetchTransactions(); };
+    const refreshCategories        = async () => { await fetchCategories(); };
+    const refreshPaymentMethods    = async () => { await fetchPaymentMethods(); };
 
     useEffect(() => {
-        const today = new Date(); // Or any other Date object, e.g., new Date('2025-06-15')
-
-        // Get the full month name in the default locale
-        const monthName = today.toLocaleString('default', { month: 'long' });
+        const today = new Date();
+        console.log(`154`);
+        const monthNameStr = today.toLocaleString('default', { month: 'long' });
         const year = today.getFullYear();
-        setMonthName(`${monthName}, ${year}`);
+        setMonthName(`${monthNameStr}, ${year}`);
 
         const fetchAllData = async () => {
             try {
@@ -202,7 +172,17 @@ function MyLayout() {
         };
 
         fetchAllData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // NEW: when currentYear/currentMonth change, refetch and update header
+    useEffect(() => {
+        const d = new Date(currentYear, currentMonth, 1);
+        const monthNameStr = d.toLocaleString('default', { month: 'long' });
+        setMonthName(`${monthNameStr}, ${currentYear}`);
+        fetchTransactions();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentYear, currentMonth]);
 
     const handleRowDoubleClick = (transactionId) => {
         console.log(`Row double-clicked: ${transactionId}`)
@@ -213,6 +193,20 @@ function MyLayout() {
 
         setSelectedTransaction(transaction);
         setShowModal(true);
+    };
+
+    const handleDateDoubleClick = () => {
+        console.log('Date header double-clicked for changing month');
+        setShowMonthPicker(true);
+    };
+
+    // called when MonthPickerPanel closes and returns new year/month
+    const handleCloseMonthPicker = (payload) => {
+        setShowMonthPicker(false);
+        if (payload?.currentYear && payload?.currentMonth) {
+            setCurrentYear(payload.currentYear);
+            setCurrentMonth(payload.currentMonth - 1); // payload is 1-12
+        }
     };
 
     if (loading) return <div>Loading...</div>;
@@ -237,8 +231,13 @@ function MyLayout() {
         <div className="container">
             <div id="top-panel" className="row d-flex justify-content-center" style={{ height: '8vh', width: '100vw', alignItems: 'center', paddingLeft: '1%', paddingRight: '1%' }}>
                 <div style={{ border: '2px solid #ccc', display: 'flex', justifyContent: 'center' }}>
-                    <div className='col-md-4' style={{ paddingTop: '1%', paddingBottom: '1%' }}>
+                    <div className='col-md-4' style={{ paddingTop: '1%', paddingBottom: '1%' }} onDoubleClick={handleDateDoubleClick}>
                         <h4 style={{ margin: 0, marginBottom: '0.5rem' }}> {monthName} </h4>
+                        {showMonthPicker && (
+                            <MonthPickerPanel
+                                onClose={handleCloseMonthPicker}
+                            />
+                        )}
                     </div>
                     <div className='col-md-4 custom-border-td' style={{ paddingTop: '1%', paddingBottom: '1%' }}>
                         <h4 style={{ margin: 0, marginBottom: '0.5rem' }}>Budget:  ${ BudgetByMonth }</h4>
