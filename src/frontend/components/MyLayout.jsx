@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import axios from 'axios';
 import DataTable from './DataTable';
 import DateGroupedTable from './DateGroupedTable.jsx';
@@ -10,6 +10,7 @@ import TransactionPage from './TransactionPage';
 import Modal from 'react-bootstrap/Modal';
 import ModalBase from './ModalBase.jsx';
 import MonthPickerPanel from './MonthPickerPanel.jsx';
+import MySearchBox from './MySearchBox';
 
 function MyLayout() {
     const [users, setUsers] = useState([]);
@@ -18,7 +19,7 @@ function MyLayout() {
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [filteredTransactions, setFilteredTransactions] = useState([]);
+    let [filteredTransactions, setFilteredTransactions] = useState([]);
     const [showModal, setShowModal] = useState(false);
     const [selectedTransaction, setSelectedTransaction] = useState(null);
     const [chartDataByCategory, setChartDataByCategory] = useState([]);
@@ -29,6 +30,7 @@ function MyLayout() {
     const [monthName, setMonthName] = useState('');
     const [categoriesUsed, setCategoriesUsed] = useState(new Set());
     const [showMonthPicker, setShowMonthPicker] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
 
     // NEW: year/month state
     const today = new Date();
@@ -207,6 +209,34 @@ function MyLayout() {
         }
     };
 
+    const normalizedTransactions = useMemo(
+        () =>
+          transactions.map((tx) => ({
+            transaction_id: tx.transaction_id,
+            date: tx.transaction_date,
+            amount: tx.amount,
+            merchant: tx.merchant,
+            category: tx.category_name,
+            paymentMethod: tx.payment_method_name,
+          })),
+        [transactions]
+      );
+      
+      filteredTransactions = useMemo(() => {
+        const q = searchQuery.trim().toLowerCase();
+        if (!q) return normalizedTransactions;
+    
+        const keys = ['merchant', 'category', 'paymentMethod'];
+    
+        return normalizedTransactions.filter((item) =>
+          keys.some((key) => {
+            const value = item[key];
+            if (value == null) return false;
+            return String(value).toLowerCase().includes(q);
+          })
+        );
+      }, [normalizedTransactions, searchQuery]);
+
     if (loading) return <div>Loading...</div>;
     if (error) return <div>Error: {error}</div>;
 
@@ -267,6 +297,9 @@ function MyLayout() {
                 padding: '1rem'
             }}>
                 <h4 style={{ margin: 0, marginBottom: '0.5rem' }}>TRANSACTIONS</h4>
+                <MySearchBox
+                    onQueryChange={setSearchQuery}
+                />
                 <div style={{ flex: 1, overflow: 'auto' }}>
                     {/* <DataTable
                         data={dataWithEmptyRow}
