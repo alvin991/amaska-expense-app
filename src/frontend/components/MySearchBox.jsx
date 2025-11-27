@@ -10,7 +10,7 @@ function MySearchBox({ onQueryChange }) {
   };
 
   return (
-    <div className="container">
+    <div className="container" style={{ padding: '1.7rem' }}>
       <input
         type="text"
         className="form-control"

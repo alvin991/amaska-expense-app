@@ -257,7 +257,7 @@ function MyLayout() {
 
     return (
         <div className="container">
-            <div id="top-panel" className="row d-flex justify-content-center" style={{ height: '8vh', width: '100vw', alignItems: 'center', paddingLeft: '1%', paddingRight: '1%' }}>
+            <div id="top-panel" className="row d-flex justify-content-center" style={{ height: '8vh', width: '100%', alignItems: 'center', paddingLeft: '1%', paddingRight: '1%' }}>
                 <div style={{ border: '2px solid #ccc', display: 'flex', justifyContent: 'center' }}>
                     <div className='col-md-4' style={{ paddingTop: '1%', paddingBottom: '1%' }} onDoubleClick={handleDateDoubleClick}>
                         <h4 style={{ margin: 0, marginBottom: '0.5rem' }}> {monthName} </h4>
@@ -275,8 +275,8 @@ function MyLayout() {
                     </div>
                 </div>
             </div>
-            <div className="row line-break" style={{ height: '2vh', width: '100vw' }} />
-            <div id="middle-panel" className="row d-flex justify-content-center" style={{ height: '30vh', width: '100vw' }}>
+            <div className="row line-break" style={{ height: '2vh', width: '100%' }} />
+            <div id="middle-panel" className="row d-flex justify-content-center" style={{ height: '30vh', width: '100%' }}>
                 <div className='col-md-4'>
                     <PieChartHasTextInside chartData={leftToSpendData} heading='LEFT TO SPEND' centerLabel={ '$' + leftToSpend} />
                 </div>
@@ -287,20 +287,19 @@ function MyLayout() {
                     <PieChartWithCustomizedLabel chartData={chartDataByPaymentMethod} heading='PAY BY' />
                 </div>
             </div>
-            <div className="row line-break" style={{ height: '2vh', width: '100vw' }} />
+            <div className="row line-break" style={{ height: '2vh', width: '100%' }} />
             <div id="bottom-panel" className="row" style={{ 
                 height: '60vh', 
-                width: '100vw', 
+                width: '100%', 
                 backgroundColor: 'lightblue',
                 display: 'flex',
                 flexDirection: 'column',
-                padding: '1rem'
             }}>
                 <h4 style={{ margin: 0, marginBottom: '0.5rem' }}>TRANSACTIONS</h4>
                 <MySearchBox
                     onQueryChange={setSearchQuery}
                 />
-                <div style={{ flex: 1, overflow: 'auto' }}>
+                <div style={{ flex: 1, overflow: 'auto', paddingRight: '0px !important' }}>
                     {/* <DataTable
                         data={dataWithEmptyRow}
                         onRowDoubleClick={handleRowDoubleClick}
