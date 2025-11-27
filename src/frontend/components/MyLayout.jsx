@@ -276,7 +276,7 @@ function MyLayout() {
                 </div>
             </div>
             <div className="row line-break" style={{ height: '2vh', width: '100%' }} />
-            <div id="middle-panel" className="row d-flex justify-content-center" style={{ height: '30vh', width: '100%' }}>
+            <div id="middle-panel" className="row d-flex justify-content-center" style={{ width: '100%' }}>
                 <div className='col-md-4'>
                     <PieChartHasTextInside chartData={leftToSpendData} heading='LEFT TO SPEND' centerLabel={ '$' + leftToSpend} />
                 </div>

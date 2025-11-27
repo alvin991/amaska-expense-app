@@ -34,7 +34,7 @@ function DateGroupedTable({ data, onRowDoubleClick }) {
 
   return (
     <div
-      id="bottom-panel"
+    //   id="bottom-panel"
       className="g-0"
       style={{
         /* let height grow; parent decides scroll */
