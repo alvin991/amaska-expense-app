@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { Form, Button, Container, Row, Col } from 'react-bootstrap';
+import { iconRegistry, iconsFromDb } from "../iconRegistry";
+import IconElement from "./IconElement";
+import IconSelect from './IconSelect';
 
 export const DEFAULT_CATEGORY = {
   id: null,
@@ -25,12 +28,34 @@ const CategoryDetailsPage = ({ propCategory = {}, onNavigate, refreshCategories 
 
   const [deleting, setDeleting] = useState(false);
 
+  // NEW: control IconSelect visibility
+  const [showIconPicker, setShowIconPicker] = useState(false);
+
+  const iconKey = formData.icon || category.icon;
+  const IconComponent = iconKey ? iconRegistry[iconKey] : null;
+  console.log('category.icon =', category.icon);
+  console.log('iconRegistry keys =', Object.keys(iconRegistry));
+  console.log('IconComponent =', IconComponent);
+  const iconInfo =
+    iconsFromDb.find(ic => ic.id === (formData.icon || category.icon)) ||
+    { label: 'Select an icon', color: '#000' };
+  const iconSize = 24;
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
+  };
+
+  // When an icon is chosen in IconSelect
+  const handleIconSelect = (iconId) => {
+    setFormData(prev => ({
+      ...prev,
+      icon: iconId
+    }));
+    setShowIconPicker(false);
   };
 
   const handleSubmit = async (e) => {
@@ -109,19 +134,62 @@ const CategoryDetailsPage = ({ propCategory = {}, onNavigate, refreshCategories 
               />
             </Form.Group>
           </Col>
-          <Col>
-            <Form.Group>
-              <Form.Label>Icon</Form.Label>
-              <Form.Control
-                name="icon"
-                type="text"
-                value={formData.icon}
-                onChange={handleChange}
-                placeholder="e.g. fa-coffee"
-              />
-            </Form.Group>
-          </Col>
         </Row>
+
+        {/* ICON display + click to open picker */}
+        <Form.Group
+          className="mb-3"
+          style={{ cursor: 'pointer' }}
+          onClick={() => {
+            if (!showIconPicker) setShowIconPicker(true);
+          }}
+        >
+          <Form.Label
+            style={{
+              display: 'block',          // force label on its own line
+              marginBottom: '0.25rem',
+            }}
+          >
+            Icon
+          </Form.Label>
+
+          {!showIconPicker && (
+            <div
+              style={{
+                marginTop: '0.25rem',   // space under label
+                display: 'flex',
+                justifyContent: 'center',      // center horizontally
+              }}
+            >
+              {IconComponent ? (
+                <IconElement
+                  key={iconKey}
+                  iconKey={iconKey}
+                  label={iconInfo.label}
+                  size={iconSize}
+                  color={iconInfo.color}
+                />
+              ) : (
+                <div
+                  style={{
+                    padding: '0.5rem 0',
+                    color: '#666',
+                  }}
+                >
+                  Click to select an icon
+                </div>
+              )}
+            </div>
+          )}
+
+          {showIconPicker && (
+            <IconSelect
+              onIconSelect={handleIconSelect}
+              selectedIconKey={iconKey}
+            />
+          )}
+        </Form.Group>
+
         <div className="d-flex gap-2 mb-2">
           <Button variant="primary" type="submit">
             Save

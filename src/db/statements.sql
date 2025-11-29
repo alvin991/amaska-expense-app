@@ -59,17 +59,32 @@ JOIN users u ON t.user_id = u.id
 JOIN expense_categories c ON t.category_id = c.id
 JOIN payment_methods p ON t.payment_method_id = p.id;
 
-INSERT INTO expense_categories (name, description) VALUES ('PERSONAL', 'PERSONAL EXPENSES');
-INSERT INTO expense_categories (name, description) VALUES ('DINE OUT', 'DINE OUT EXPENSES');
-INSERT INTO expense_categories (name, description) VALUES ('GROCERY', 'GROCERY EXPENSES');
-INSERT INTO expense_categories (name, description) VALUES ('CAR', 'CAR EXPENSES');
-INSERT INTO expense_categories (name, description) VALUES ('PET', 'PET EXPENSES');
-INSERT INTO expense_categories (name, description) VALUES ('ANNABELLE', 'ANNABELLE EXPENSES');
-INSERT INTO expense_categories (name, description) VALUES ('HOUSEHOLD', 'HOUSEHOLD EXPENSES');
-INSERT INTO expense_categories (name, description) VALUES ('ENTERTAINMENT', 'ENTERTAINMENT EXPENSES');
+INSERT INTO expense_categories (name, description, color, icon) VALUES ('PERSONAL', 'PERSONAL EXPENSES', 'pink', 'personal');
+INSERT INTO expense_categories (name, description, color, icon) VALUES ('DINE OUT', 'DINE OUT EXPENSES', 'teal', 'dining');
+INSERT INTO expense_categories (name, description, color, icon) VALUES ('GROCERY', 'GROCERY EXPENSES', 'green', 'grocery');
+INSERT INTO expense_categories (name, description, color, icon) VALUES ('CAR', 'CAR EXPENSES', 'grey', 'car');
+INSERT INTO expense_categories (name, description, color, icon) VALUES ('PET', 'PET EXPENSES', 'orange', 'pets');
+INSERT INTO expense_categories (name, description, color, icon) VALUES ('ANNABELLE', 'ANNABELLE EXPENSES', 'purple', 'bebe');
+INSERT INTO expense_categories (name, description, color, icon) VALUES ('HOUSEHOLD', 'HOUSEHOLD EXPENSES', 'brown', 'household');
+INSERT INTO expense_categories (name, description, color, icon) VALUES ('ENTERTAINMENT', 'ENTERTAINMENT EXPENSES', NULL, NULL);
+INSERT INTO expense_categories (name, description, color, icon) VALUES ('CHURCH', 'CHURCH EXPENSES', '#e5e51c', 'church');
+INSERT INTO expense_categories (name, description, color, icon) VALUES ('BUSINESS', 'BUSINESS EXPENSES', 'blue', 'business');
+INSERT INTO expense_categories (name, description, color, icon) VALUES ('MISCELLANEOUS', 'MISCELLANEOUS EXPENSES', 'white', 'miscellaneous');
 
 ALTER TABLE expense_categories ADD COLUMN color VARCHAR(7);
 ALTER TABLE expense_categories ADD COLUMN icon VARCHAR(100);
+
+UPDATE expense_categories SET color = 'pink', icon = 'personal' WHERE name = 'PERSONAL';
+UPDATE expense_categories SET color = 'teal', icon = 'dining' WHERE name = 'DINE OUT';
+UPDATE expense_categories SET color = 'green', icon = 'grocery' WHERE name = 'GROCERY';
+UPDATE expense_categories SET color = 'grey', icon = 'car' WHERE name = 'CAR';
+UPDATE expense_categories SET color = 'orange', icon = 'pets' WHERE name = 'PET';
+UPDATE expense_categories SET color = 'purple', icon = 'bebe' WHERE name = 'ANNABELLE';
+UPDATE expense_categories SET color = 'brown', icon = 'household' WHERE name = 'HOUSEHOLD';
+UPDATE expense_categories SET color = NULL, icon = NULL WHERE name = 'ENTERTAINMENT';
+UPDATE expense_categories SET color = '#e5e51c', icon = 'church' WHERE name = 'CHURCH';
+UPDATE expense_categories SET color = 'blue', icon = 'business' WHERE name = 'BUSINESS';
+UPDATE expense_categories SET color = 'white', icon = 'miscellaneous' WHERE name = 'MISCELLANEOUS';
 
 DROP TABLE if exists payment_method;
 CREATE TABLE payment_methods (
