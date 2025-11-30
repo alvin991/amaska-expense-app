@@ -1,5 +1,10 @@
 import React from 'react';
 import { Table } from 'react-bootstrap';
+import {
+  iconRegistry,
+  categoryToIconKey,
+  getColorForIconKey,
+} from '../iconRegistry';
 
 function DateGroupedTable({ data, onRowDoubleClick }) {
   if (!data || data.length === 0) {
@@ -28,25 +33,25 @@ function DateGroupedTable({ data, onRowDoubleClick }) {
     date: '120px',
     amount: '110px',
     merchant: '240px',
-    category: '160px',
+    category: '220px',
     paymentMethod: '150px',
   };
 
+  const iconSize = 18;
+  const circleSize = iconSize + 12; // similar padding to IconElement
+
   return (
     <div
-    //   id="bottom-panel"
       className="g-0"
       style={{
-        /* let height grow; parent decides scroll */
         width: '100%',
         backgroundColor: 'lightblue',
         display: 'flex',
         flexDirection: 'column',
-        // padding: '1rem',
         paddingTop: '1rem',
         paddingBottom: '1rem',
         paddingLeft: '1rem',
-        overflow: 'hidden', // no inner scrollbars
+        overflow: 'hidden',
       }}
     >
       <Table
@@ -83,30 +88,61 @@ function DateGroupedTable({ data, onRowDoubleClick }) {
                   </div>
                 </td>
               </tr>
-              {group.items.map((item) => (
-                <tr
-                  key={item.transaction_id}
-                  onDoubleClick={() =>
-                    onRowDoubleClick?.(item.transaction_id)
-                  }
-                >
-                  <td style={{ width: columnWidths.merchant }}>
-                    {item.merchant}
-                  </td>
-                  <td style={{ width: columnWidths.category }}>
-                    {item.category}
-                  </td>
-                  <td style={{ width: columnWidths.paymentMethod }}>
-                    {item.paymentMethod}
-                  </td>
-                  <td
-                    className="text-end"
-                    style={{ width: columnWidths.amount }}
+              {group.items.map((item) => {
+                const iconKey = categoryToIconKey(item.category);
+                const IconComponent = iconKey ? iconRegistry[iconKey] : null;
+                const bgColor =
+                  item.category_color || getColorForIconKey(iconKey);
+
+                return (
+                  <tr
+                    key={item.transaction_id}
+                    onDoubleClick={() =>
+                      onRowDoubleClick?.(item.transaction_id)
+                    }
                   >
-                    ${item.amount.toFixed(2)}
-                  </td>
-                </tr>
-              ))}
+                    <td style={{ width: columnWidths.merchant }}>
+                      {item.merchant}
+                    </td>
+                    <td style={{ width: columnWidths.category }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8,
+                        }}
+                      >
+                        {IconComponent && (
+                          <div
+                            style={{
+                              width: circleSize,
+                              height: circleSize,
+                              borderRadius: '50%',
+                              backgroundColor: bgColor,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                            }}
+                          >
+                            <IconComponent size={iconSize} color="white" />
+                          </div>
+                        )}
+                        <span>{item.category}</span>
+                      </div>
+                    </td>
+                    <td style={{ width: columnWidths.paymentMethod }}>
+                      {item.paymentMethod}
+                    </td>
+                    <td
+                      className="text-end"
+                      style={{ width: columnWidths.amount }}
+                    >
+                      ${item.amount.toFixed(2)}
+                    </td>
+                  </tr>
+                );
+              })}
             </React.Fragment>
           ))}
         </tbody>
