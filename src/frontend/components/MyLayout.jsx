@@ -255,6 +255,12 @@ function MyLayout() {
         ...filteredTransactions
     ];
 
+    const handleNewTransactionClick = () => {
+        // open modal with no selected transaction
+        setSelectedTransaction(null);
+        setShowModal(true);
+    };
+
     return (
         <div className="container">
             <div id="top-panel" className="row d-flex justify-content-center" style={{ height: '8vh', width: '100%', alignItems: 'center', paddingLeft: '1%', paddingRight: '1%' }}>
@@ -296,16 +302,24 @@ function MyLayout() {
                 flexDirection: 'column',
             }}>
                 <h4 style={{ margin: 0, marginBottom: '0.5rem' }}>TRANSACTIONS</h4>
+
+                {/* Search box (keeps existing width/layout) */}
                 <MySearchBox
                     onQueryChange={setSearchQuery}
                 />
+
+                {/* New Transaction button, same width as search box */}
+                <div style={{ paddingLeft: '1.7rem', paddingRight: '1.7rem', marginBottom: '0.5rem' }}>
+                    <button
+                        type="button"
+                        className="btn btn-primary w-100"
+                        onClick={handleNewTransactionClick}
+                    >
+                        New Transaction
+                    </button>
+                </div>
+
                 <div style={{ flex: 1, overflow: 'auto', paddingRight: '0px !important' }}>
-                    {/* <DataTable
-                        data={dataWithEmptyRow}
-                        onRowDoubleClick={handleRowDoubleClick}
-                        emptyRowHeight={filteredTransactions.length ? undefined : '50px'} // Pass fixed height if no data
-                        className="position-fixed"
-                    /> */}
                     <DateGroupedTable 
                         data={filteredTransactions}
                         onRowDoubleClick={handleRowDoubleClick}

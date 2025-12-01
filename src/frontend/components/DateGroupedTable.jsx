@@ -65,9 +65,6 @@ function DateGroupedTable({ data, onRowDoubleClick }) {
         }}
       >
         <tbody>
-          <tr onDoubleClick={() => onRowDoubleClick?.(null)}>
-            <td colSpan="4">Create New Transaction</td>
-          </tr>
           {groupedData.map((group) => (
             <React.Fragment key={group.date}>
               <tr>
