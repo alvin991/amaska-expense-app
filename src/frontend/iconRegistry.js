@@ -43,13 +43,16 @@ export const categoryToIconKey = (category) => {
   const key = category.toLowerCase();
 
   if (key.includes('pet')) return 'pets';
-  if (key.includes('dining') || key.includes('restaurant') || key.includes('food')) return 'dining';
-  if (key.includes('grocery')) return 'grocery';
+  if (key.includes('dine out')) return 'dining';
+  if (key.includes('personal')) return 'personal';
   if (key.includes('gift')) return 'gift';
-  if (key.includes('house')) return 'household';
-  if (key.includes('car') || key.includes('transport')) return 'car';
-  if (key.includes('business') || key.includes('work')) return 'business';
-  if (key.includes('church') || key.includes('donation')) return 'church';
+  if (key.includes('household')) return 'household';
+  if (key.includes('grocery')) return 'grocery';
+  if (key.includes('car')) return 'car';
+  if (key.includes('business')) return 'business';
+  if (key.includes('annabelle')) return 'bebe';
+  if (key.includes('church')) return 'church';
+  if (key.includes('miscellaneous')) return 'miscellaneous';
   if (key.includes('util')) return 'utilities';
   if (key.includes('phone') || key.includes('internet')) return 'phone';
   if (key.includes('medical') || key.includes('health')) return 'medical';
