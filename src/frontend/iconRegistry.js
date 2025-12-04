@@ -34,7 +34,7 @@ export const iconsFromDb = [
   { id: "business", label: "Business", color: "blue" },
   { id: "bebe", label: "Bebe", color: "purple" },
   { id: "church", label: "Church", color: "#e5e51c" },
-  { id: "miscellaneous", label: "miscellaneous", color: "white" },
+  { id: "misc", label: "Misc.", color: "chartreuse" },
 ];
 
 // Helper: map free-text category name to iconRegistry key
@@ -52,7 +52,7 @@ export const categoryToIconKey = (category) => {
   if (key.includes('business')) return 'business';
   if (key.includes('annabelle')) return 'bebe';
   if (key.includes('church')) return 'church';
-  if (key.includes('miscellaneous')) return 'miscellaneous';
+  if (key.includes('misc')) return 'misc';
   if (key.includes('util')) return 'utilities';
   if (key.includes('phone') || key.includes('internet')) return 'phone';
   if (key.includes('medical') || key.includes('health')) return 'medical';
