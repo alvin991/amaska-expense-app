@@ -77,6 +77,7 @@ function ColorSelect({ label = "Color", value, onChange, colors = DEFAULT_COLORS
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        Click for custom color:&nbsp;
         <Form.Control
           type="color"
           value={value}
