@@ -14,7 +14,11 @@ export const DEFAULT_CATEGORY = {
   icon: ''
 };
 
-const CategoryDetailsPage = ({ propCategory = {}, onNavigate, refreshCategories }) => {
+const CategoryDetailsPage = ({
+  propCategory,
+  refreshCategories,
+  navigation, // provided by ModalBase container
+}) => {
   const category =
     propCategory && Object.keys(propCategory).length > 0
       ? propCategory
@@ -23,14 +27,11 @@ const CategoryDetailsPage = ({ propCategory = {}, onNavigate, refreshCategories 
   const [formData, setFormData] = useState({
     name: category.name || '',
     notes: category.description || '',
-    // keep initial color from category, but everything after this uses formData.color
     color: category.color || '#2196f3',
     icon: category.icon || ''
   });
 
   const [deleting, setDeleting] = useState(false);
-
-  // control pickers visibility
   const [showIconPicker, setShowIconPicker] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
 
@@ -40,8 +41,6 @@ const CategoryDetailsPage = ({ propCategory = {}, onNavigate, refreshCategories 
     iconsFromDb.find(ic => ic.id === (formData.icon || category.icon)) ||
     { label: 'Select an icon', color: '#000' };
   const iconSize = 24;
-
-  // always drive UI from formData.color
   const selectedColor = formData.color || '#2196f3';
 
   const handleChange = (e) => {
@@ -77,9 +76,9 @@ const CategoryDetailsPage = ({ propCategory = {}, onNavigate, refreshCategories 
       }
 
       await refreshCategories();
-      onNavigate('categoryList');
+      navigation.back();
     } catch (error) {
-      console.error('Error saving transaction:', error);
+      console.error('Error saving category:', error);
     }
   };
 
@@ -89,7 +88,7 @@ const CategoryDetailsPage = ({ propCategory = {}, onNavigate, refreshCategories 
     try {
       await axios.delete(`/api/categories/${category.id}`);
       await refreshCategories();
-      onNavigate('categoryList');
+      navigation.back();
     } catch (error) {
       console.error('Error deleting category:', error);
     } finally {
@@ -97,16 +96,21 @@ const CategoryDetailsPage = ({ propCategory = {}, onNavigate, refreshCategories 
     }
   };
 
+  const openColorPicker = () => {
+    navigation.navigate('colorSelect', {
+      value: formData.color,
+      onColorChosen: (newColor) => {
+        setFormData(prev => ({ ...prev, color: newColor }));
+      },
+    });
+  };
+
   return (
     <Container>
-      <h2>Category Details Page</h2>
       <Form onSubmit={handleSubmit}>
+        {/* Name */}
         <Form.Group className="mb-3">
-          <Form.Label
-            style={{
-              fontWeight: 600,
-            }}
-          >
+          <Form.Label style={{ fontWeight: 600 }}>
             Name
           </Form.Label>
           <Form.Control
@@ -119,12 +123,9 @@ const CategoryDetailsPage = ({ propCategory = {}, onNavigate, refreshCategories 
           />
         </Form.Group>
 
+        {/* Notes */}
         <Form.Group className="mb-3">
-          <Form.Label
-            style={{
-              fontWeight: 600,
-            }}
-          >
+          <Form.Label style={{ fontWeight: 600 }}>
             Notes
           </Form.Label>
           <Form.Control
@@ -137,19 +138,17 @@ const CategoryDetailsPage = ({ propCategory = {}, onNavigate, refreshCategories 
           />
         </Form.Group>
 
-        {/* COLOR display + click to open color picker */}
+        {/* Color picker */}
         <Form.Group
           className="mb-3"
           style={{
             cursor: 'pointer',
-            padding: showColorPicker ? '8px 12px' : 0,
-            border: showColorPicker ? '1px solid #ddd' : '1px solid transparent',
-            borderRadius: showColorPicker ? 8 : 0,
-            backgroundColor: showColorPicker ? '#fafafa' : 'transparent',
+            padding: '8px 12px',
+            border: '1px solid #ddd',
+            borderRadius: 8,
+            backgroundColor: '#fafafa',
           }}
-          onClick={() => {
-            if (!showColorPicker) setShowColorPicker(true);
-          }}
+          onClick={openColorPicker}
         >
           <Form.Label
             style={{
@@ -161,40 +160,27 @@ const CategoryDetailsPage = ({ propCategory = {}, onNavigate, refreshCategories 
             Color
           </Form.Label>
 
-          {!showColorPicker && (
+          <div
+            style={{
+              marginTop: '0.25rem',
+              display: 'flex',
+              justifyContent: 'center',
+            }}
+          >
             <div
               style={{
-                marginTop: '0.25rem',
-                display: 'flex',
-                justifyContent: 'center',
-              }}
-            >
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: '50%',
-                  backgroundColor: selectedColor,
-                  border: '3px solid #000',     // thicker border
-                  boxShadow: '0 0 0 3px rgba(0,0,0,0.08)', // subtle outer glow
-                }}
-              />
-            </div>
-          )}
-
-          {showColorPicker && (
-            <ColorSelect
-              label={null}
-              value={selectedColor}
-              onChange={(newColor) => {
-                setFormData(prev => ({ ...prev, color: newColor }));
-                setShowColorPicker(false);
+                width: 40,
+                height: 40,
+                borderRadius: '50%',
+                backgroundColor: selectedColor,
+                border: '3px solid #000',
+                boxShadow: '0 0 0 3px rgba(0,0,0,0.08)',
               }}
             />
-          )}
+          </div>
         </Form.Group>
 
-        {/* ICON display + click to open icon picker */}
+        {/* Icon picker */}
         <Form.Group
           className="mb-3"
           style={{
@@ -255,17 +241,13 @@ const CategoryDetailsPage = ({ propCategory = {}, onNavigate, refreshCategories 
           )}
         </Form.Group>
 
-        <div className="d-flex gap-2 mb-2">
-          <Button variant="primary" type="submit">
-            Save
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={() => onNavigate('categoryList')}
-          >
-            Cancel
-          </Button>
-        </div>
+        <Button 
+          variant="primary" 
+          type="submit"
+          className="w-100 mb-3"
+        >
+          Save
+        </Button>
 
         {category?.id && (
           <Button
@@ -274,7 +256,7 @@ const CategoryDetailsPage = ({ propCategory = {}, onNavigate, refreshCategories 
             onClick={handleDelete}
             disabled={deleting}
           >
-            {deleting ? 'Deleting...' : 'Delete Category'}
+            {deleting ? 'Deleting...' : 'Delete'}
           </Button>
         )}
       </Form>

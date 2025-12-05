@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Form, Container, Button, InputGroup } from 'react-bootstrap';
 import axios from 'axios';
 import ConfirmationModal from './MyConfirmBox';
@@ -16,7 +16,16 @@ export const DEFAULT_TRANSACTION = {
   payment_method_name: ''
 };
 
-function TransactionEntryPage({ transaction = {}, paymentMethods = [], categories = [], onNavigate, refreshTransactions, onHide, setTransaction }) {
+function TransactionEntryPage({
+  transaction = {},
+  paymentMethods = [],
+  categories = [],
+  navigation,                 // <-- container navigation object
+  refreshTransactions,
+  onHide,
+  setTransaction,             // <-- container state setter
+}) {
+  // local UI state only
   const [formData, setFormData] = useState({
     amount: '',
     merchant: '',
@@ -29,37 +38,7 @@ function TransactionEntryPage({ transaction = {}, paymentMethods = [], categorie
   const [isAmountFocused, setIsAmountFocused] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-  // const computedTransaction = useMemo(() => {
-  //   console.log('ComputedTransaction');
-  //   return (transaction && Object.keys(transaction).length > 0)
-  // }, [transaction]);
-
-  // Update form when transaction changes
-  // useEffect(() => {
-  //   console.log(`transaction: ${JSON.stringify(transaction, null, 2)}`);
-  //   if (transaction.transaction_id) {
-  //     console.log(`28`);
-  //     setFormData({
-  //       amount: transaction.amount || '',
-  //       merchant: transaction.merchant || '',
-  //       paymentMethod: transaction.payment_method_id || '',
-  //       category: transaction.category_id || '',
-  //       date: transaction.transaction_date?.split('T')[0] || '', // Format date for input
-  //       notes: transaction.notes || ''
-  //     });
-  //   } else {
-  //     console.log(`31`);
-  //     // Reset form when no transaction
-  //     setFormData({
-  //       amount: 0.00,
-  //       merchant: '',
-  //       paymentMethod: '',
-  //       category: '',
-  //       date: new Date().toISOString().split('T')[0],
-  //       notes: ''
-  //     });
-  //   }
-  // }, [transaction]);
+  // keep formData in sync with transaction from container
   useEffect(() => {
     console.log(`transaction: ${JSON.stringify(transaction, null, 2)}`);
     setFormData({
@@ -67,34 +46,29 @@ function TransactionEntryPage({ transaction = {}, paymentMethods = [], categorie
       merchant: transaction.merchant || '',
       paymentMethod: transaction.payment_method_id || '',
       category: transaction.category_id || '',
-      date: transaction.transaction_date?.split('T')[0] || new Date().toISOString().split('T')[0], // Format date for input
+      date: transaction.transaction_date?.split('T')[0]
+        || new Date().toISOString().split('T')[0],
       notes: transaction.notes || ''
     });
   }, [transaction]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    // setFormData(prevState => ({
-    //   ...prevState,
-    //   [name]: value
-    // }));
+    // reflect in container-level transaction state
     setTransaction(prev => ({ ...prev, [name]: value }));
+    // and mirror to local formData for fields that are displayed from formData
+    setFormData(prev => ({ ...prev, [name === 'transaction_date' ? 'date' : name]: value }));
   };
 
   const handleAmountChange = (e) => {
-    // Allow digits and single decimal point while typing
     let v = e.target.value.replace(/[^0-9.]/g, '');
     const parts = v.split('.');
     if (parts.length > 2) {
-      // Keep only first decimal point and first fractional part
       v = parts[0] + '.' + parts.slice(1).join('');
-      // Trim to max two fractional digits during input? keep flexible; we'll format on blur.
     }
-    // setFormData(prev => ({
-    //   ...prev,
-    //   amount: v
-    // }));
+
     setTransaction(prev => ({ ...prev, amount: v }));
+    setFormData(prev => ({ ...prev, amount: v }));
   };
 
   const handleAmountFocus = () => setIsAmountFocused(true);
@@ -106,15 +80,16 @@ function TransactionEntryPage({ transaction = {}, paymentMethods = [], categorie
     const num = Number(v);
     if (Number.isNaN(num)) {
       setFormData(prev => ({ ...prev, amount: '' }));
+      setTransaction(prev => ({ ...prev, amount: '' }));
       return;
     }
-    // Format to exactly 2 decimal places on blur
-    setFormData(prev => ({ ...prev, amount: num.toFixed(2) }));
+    const formatted = num.toFixed(2);
+    setFormData(prev => ({ ...prev, amount: formatted }));
+    setTransaction(prev => ({ ...prev, amount: formatted }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     try {
       const payload = {
         user_id: 1,
@@ -123,7 +98,7 @@ function TransactionEntryPage({ transaction = {}, paymentMethods = [], categorie
         transaction_date: formData.date,
         merchant: formData.merchant,
         category_id: parseInt(formData.category) || null,
-        payment_method_id: parseInt(formData.paymentMethod) || null
+        payment_method_id: parseInt(formData.paymentMethod) || null,
       };
 
       if (transaction?.transaction_id) {
@@ -132,16 +107,15 @@ function TransactionEntryPage({ transaction = {}, paymentMethods = [], categorie
         await axios.post('/api/transactions', payload);
       }
 
-      await refreshTransactions(); // Refresh data first
-      onHide();         // Then close modal
+      await refreshTransactions();
+      onHide();
     } catch (error) {
       console.error('Error saving transaction:', error);
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!transaction?.transaction_id) return;
-    
     setShowConfirmModal(true);
   };
 
@@ -157,36 +131,28 @@ function TransactionEntryPage({ transaction = {}, paymentMethods = [], categorie
   };
 
   const handleCancelDelete = () => {
-    setShowConfirmModal(false); // Hide the modal
-  };
-
-  const formatAmount = (value) => {
-    if (!value) return '';
-    return `$${Number(value).toFixed(2)}`;
+    setShowConfirmModal(false);
   };
 
   const handleSelectClick = (e) => {
     e.preventDefault();
-    onNavigate('categoryList');
+    // use container navigation instead of onNavigate string
+    navigation.navigate('categoryList');
   };
 
   const handlePaymentMethodChange = (e) => {
-    console.log(`Payment method changed: ${e.target.value}`);
     const newId = parseInt(e.target.value);
     const selectedMethod = paymentMethods.find(pm => pm.id === newId);
-    console.log(`Selected method: ${JSON.stringify(selectedMethod, null, 2)}`);
-
-    // setFormData(prev => ({
-    //   ...prev,
-    //   paymentMethod: newId,
-    //   payment_method_id: newId,
-    //   payment_method_name: selectedMethod ? selectedMethod.name : ''
-    // }));
 
     setTransaction(prev => ({
       ...prev,
       payment_method_id: newId,
       payment_method_name: selectedMethod ? selectedMethod.name : ''
+    }));
+
+    setFormData(prev => ({
+      ...prev,
+      paymentMethod: newId
     }));
   };
 
@@ -200,8 +166,11 @@ function TransactionEntryPage({ transaction = {}, paymentMethods = [], categorie
             <Form.Control
               type="text"
               name="amount"
-              // show raw value while editing, otherwise show formatted 2-decimal value
-              value={isAmountFocused ? formData.amount : (formData.amount !== '' ? Number(formData.amount).toFixed(2) : '')}
+              value={
+                isAmountFocused
+                  ? formData.amount
+                  : (formData.amount !== '' ? Number(formData.amount).toFixed(2) : '')
+              }
               onChange={handleAmountChange}
               onFocus={handleAmountFocus}
               onBlur={handleAmountBlur}
@@ -225,7 +194,7 @@ function TransactionEntryPage({ transaction = {}, paymentMethods = [], categorie
         <Form.Group className="mb-3">
           <Form.Label>Payment Method</Form.Label>
           <Form.Select
-            name="payment_method_id"
+            name="paymentMethod"
             value={formData.paymentMethod}
             onChange={handlePaymentMethodChange}
           >
@@ -241,12 +210,12 @@ function TransactionEntryPage({ transaction = {}, paymentMethods = [], categorie
         <Form.Group className="mb-3">
           <Form.Label>Category</Form.Label>
           <Form.Select
-            name="category_id"
+            name="category"
             value={formData.category}
             onMouseDown={handleSelectClick}
             onChange={(e) => e.preventDefault()}
           >
-            { transaction.category_id === '' && <option value=''>Select Category</option>}
+            {transaction.category_id === '' && <option value="">Select Category</option>}
             {categories.map((category) => (
               <option key={category.id} value={category.id}>
                 {category.name}
@@ -284,7 +253,12 @@ function TransactionEntryPage({ transaction = {}, paymentMethods = [], categorie
         </div>
 
         <div className="d-grid gap-2">
-          <Button variant="danger" type="button" style={{ display: transaction.transaction_id ? 'block' : 'none' }} onClick={handleDelete}>
+          <Button
+            variant="danger"
+            type="button"
+            style={{ display: transaction.transaction_id ? 'block' : 'none' }}
+            onClick={handleDelete}
+          >
             Delete
           </Button>
         </div>

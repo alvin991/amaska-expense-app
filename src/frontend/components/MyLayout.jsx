@@ -301,34 +301,17 @@ function MyLayout() {
                         className="position-fixed"
                     />
                 </div>
-                <Modal
-                    show={showModal}
-                    onHide={() => setShowModal(false)}
-                    dialogClassName="modal-90w"
-                    size='lg'
-                    centered
-                    backdrop="static"
-                    keyboard={false}
-                >
-                    <Modal.Header closeButton>
-                        <Modal.Title>
-                            Testing Modal Title
-                        </Modal.Title>
-                    </Modal.Header>
-                    <Modal.Body>
-                        <ModalBase 
-                            paymentMethods={paymentMethods}
-                            categories={categories}
-                            propTransaction={selectedTransaction}
-                            categoriesUsed={categoriesUsed}
-                            isOpen={showModal}
-                            refreshTransactions={refreshTransactions}
-                            refreshCategories={refreshCategories}
-                            refreshPaymentMethods={refreshPaymentMethods}
-                            onHide={() => setShowModal(false)}
-                        />
-                    </Modal.Body>
-                </Modal>
+                <ModalBase
+                  paymentMethods={paymentMethods}
+                  categories={categories}
+                  propTransaction={selectedTransaction}
+                  categoriesUsed={categoriesUsed}
+                  isOpen={showModal}
+                  refreshTransactions={refreshTransactions}
+                  refreshCategories={refreshCategories}
+                  refreshPaymentMethods={refreshPaymentMethods}
+                  onHide={() => setShowModal(false)}
+                />
             </div>
         </div>
     );

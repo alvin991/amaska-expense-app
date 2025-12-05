@@ -1,14 +1,15 @@
 import { useRef } from 'react';
 import { Button } from 'react-bootstrap';
 import './CategoryListPage.css';
-import { DEFAULT_CATEGORY } from './CategoryDetailsPage'; // <-- import DEFAULT_CATEGORY
+import { DEFAULT_CATEGORY } from './CategoryDetailsPage';
 
 const CategoryListPage = ({
   categories,
   categoriesUsed,
   transaction,
   updateCategoryId,
-  onNavigate
+  setTransaction,
+  navigation, // { navigate, back, resetToRoot, currentPage, canGoBack }
 }) => {
   const clickTimer = useRef(null);
 
@@ -16,38 +17,47 @@ const CategoryListPage = ({
   const otherCategories = categories.filter(el => !categoriesUsed.has(el.id));
 
   const handleCategoryClick = (categoryId) => {
-    console.log(`Category clicked: ${clickTimer.current}`);
     // Delay single click to see if double click happens
     if (clickTimer.current) clearTimeout(clickTimer.current);
-    clickTimer.current = setTimeout(() => {
-      if (clickTimer.current)
-        console.log(`20`);
-        updateCategoryId(categoryId);
-        onNavigate('transaction');
-        clickTimer.current = null;
 
+    clickTimer.current = setTimeout(() => {
+      if (clickTimer.current) {
+        updateCategoryId(categoryId);
+        navigation.back(); // or navigation.navigate('transaction')
+        clickTimer.current = null;
+      }
     }, 250); // 250ms is a common double-click threshold
   };
 
   const handleCategoryDoubleClick = (categoryId) => {
-    console.log(`Category double-clicked: ${clickTimer.current}`);
     // Cancel single click timer
     if (clickTimer.current) {
       clearTimeout(clickTimer.current);
       clickTimer.current = null;
     }
-    // Your double-click logic here
-    console.log(`redirect request to category details for id: ${categoryId}`);
-    onNavigate('categoryDetails', categories.find(cat => cat.id === categoryId));
+    // Navigate to category details
+    const category = categories.find(cat => cat.id === categoryId);
+    navigation.navigate('categoryDetails', { category });
   };
 
   const handleCreateCategory = () => {
-    onNavigate('categoryDetails', DEFAULT_CATEGORY);
+    navigation.navigate('categoryDetails', { category: DEFAULT_CATEGORY });
   };
 
   return (
     <div className="category-list-page">
-      <h2>Category List Page</h2>
+      {/* <h2>Category List Page</h2>
+
+      {navigation.canGoBack && (
+        <Button
+          variant="secondary"
+          className="mb-3"
+          onClick={navigation.back}
+        >
+          Back
+        </Button>
+      )} */}
+
       <div className="lists-container">
         <div className="list-section">
           <h3>Used Categories</h3>
@@ -67,6 +77,7 @@ const CategoryListPage = ({
             ))}
           </div>
         </div>
+
         <div className="list-section">
           <h3>Other Categories</h3>
           <div className="scrollable-list">
@@ -86,6 +97,7 @@ const CategoryListPage = ({
           </div>
         </div>
       </div>
+
       <Button
         variant="success"
         className="mt-3 w-100"
