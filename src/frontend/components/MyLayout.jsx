@@ -1,16 +1,11 @@
 import { useEffect, useState, useMemo } from 'react';
 import axios from 'axios';
-import DataTable from './DataTable';
 import DateGroupedTable from './DateGroupedTable.jsx';
-import MyModal from './MyModal.jsx';
-import PieChartWithCustomizedLabel from './PieChart1';
-import PieChartHasTextInside from './PieChart2';
-import ModalParent from './ModalParent';
-import TransactionPage from './TransactionPage';
 import Modal from 'react-bootstrap/Modal';
 import ModalBase from './ModalBase.jsx';
-import MonthPickerPanel from './MonthPickerPanel.jsx';
 import MySearchBox from './MySearchBox';
+import DashboardHeader from './dashboard/DashboardHeader';
+import DashboardCharts from './dashboard/DashboardCharts';
 
 function MyLayout() {
     const [users, setUsers] = useState([]);
@@ -29,7 +24,6 @@ function MyLayout() {
     const [leftToSpend, setLeftToSpend] = useState('0.00');
     const [monthName, setMonthName] = useState('');
     const [categoriesUsed, setCategoriesUsed] = useState(new Set());
-    const [showMonthPicker, setShowMonthPicker] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
 
     // NEW: year/month state
@@ -196,19 +190,6 @@ function MyLayout() {
         setShowModal(true);
     };
 
-    const handleDateDoubleClick = () => {
-        setShowMonthPicker(true);
-    };
-
-    // called when MonthPickerPanel closes and returns new year/month
-    const handleCloseMonthPicker = (payload) => {
-        setShowMonthPicker(false);
-        if (payload?.currentYear && payload?.currentMonth) {
-            setCurrentYear(payload.currentYear);
-            setCurrentMonth(payload.currentMonth - 1); // payload is 1-12
-        }
-    };
-
     const normalizedTransactions = useMemo(
         () =>
           transactions.map((tx) => ({
@@ -261,39 +242,33 @@ function MyLayout() {
         setShowModal(true);
     };
 
+    const handleChangeMonth = (year, monthIndex0Based) => {
+        setCurrentYear(year);
+        setCurrentMonth(monthIndex0Based);
+    };
+
     return (
         <div className="container">
-            <div id="top-panel" className="row d-flex justify-content-center" style={{ height: '8vh', width: '100%', alignItems: 'center', paddingLeft: '1%', paddingRight: '1%' }}>
-                <div style={{ border: '2px solid #ccc', display: 'flex', justifyContent: 'center' }}>
-                    <div className='col-md-4' style={{ paddingTop: '1%', paddingBottom: '1%' }} onDoubleClick={handleDateDoubleClick}>
-                        <h4 style={{ margin: 0, marginBottom: '0.5rem' }}> {monthName} </h4>
-                        {showMonthPicker && (
-                            <MonthPickerPanel
-                                onClose={handleCloseMonthPicker}
-                            />
-                        )}
-                    </div>
-                    <div className='col-md-4 custom-border-td' style={{ paddingTop: '1%', paddingBottom: '1%' }}>
-                        <h4 style={{ margin: 0, marginBottom: '0.5rem' }}>Budget:  ${ BudgetByMonth }</h4>
-                    </div>
-                    <div className='col-md-4 custom-border-td' style={{ paddingTop: '1%', paddingBottom: '1%' }}>
-                        <h4 style={{ margin: 0, marginBottom: '0.5rem' }}>Spent:  ${ periodTotalAmount }</h4>
-                    </div>
-                </div>
-            </div>
+            <DashboardHeader
+                monthName={monthName}
+                budgetByMonth={BudgetByMonth}
+                periodTotalAmount={periodTotalAmount}
+                currentYear={currentYear}
+                currentMonth={currentMonth}
+                onChangeMonth={handleChangeMonth}
+            />
+
             <div className="row line-break" style={{ height: '2vh', width: '100%' }} />
-            <div id="middle-panel" className="row d-flex justify-content-center" style={{ width: '100%' }}>
-                <div className='col-md-4'>
-                    <PieChartHasTextInside chartData={leftToSpendData} heading='LEFT TO SPEND' centerLabel={ '$' + leftToSpend} />
-                </div>
-                <div className='col-md-4'>
-                    <PieChartWithCustomizedLabel chartData={chartDataByCategory} heading='CATEGORY' />
-                </div>
-                <div className='col-md-4'>
-                    <PieChartWithCustomizedLabel chartData={chartDataByPaymentMethod} heading='PAY BY' />
-                </div>
-            </div>
+
+            <DashboardCharts
+                leftToSpendData={leftToSpendData}
+                leftToSpend={leftToSpend}
+                chartDataByCategory={chartDataByCategory}
+                chartDataByPaymentMethod={chartDataByPaymentMethod}
+            />
+
             <div className="row line-break" style={{ height: '2vh', width: '100%' }} />
+
             <div id="bottom-panel" className="row" style={{ 
                 height: '60vh', 
                 width: '100%', 
@@ -354,29 +329,6 @@ function MyLayout() {
                         />
                     </Modal.Body>
                 </Modal>
-                {/* <MyModal
-                    show={showModal}
-                    onHide={() => setShowModal(false)}
-                    transaction={selectedTransaction}
-                    paymentMethods={paymentMethods}
-                    categories={categories}
-                    onSuccess={refreshTransactions}
-                /> */}
-                {/* <ModalParent
-                    size='lg'
-                    centered
-                    backdrop="static"
-                    keyboard={false}
-                    title={` ${selectedTransaction ? 'Edit' : 'New'} Transaction `}
-                    isOpen={showModal}                    
-                    onClose={() => setShowModal(false)}
-                    onSuccess={refreshTransactions}
-                    transaction={selectedTransaction}
-                    paymentMethods={paymentMethods}
-                    categories={categories}
-                    categoriesUsed={categoriesUsed}
-                    currentPage="transaction"
-                /> */}
             </div>
         </div>
     );

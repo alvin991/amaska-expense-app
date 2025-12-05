@@ -1,7 +1,5 @@
 import IconElement from "./IconElement";
 import { iconRegistry } from "../iconRegistry";
-import IconDropdown from "./IconDropdown";
-import IconSelectDropdown from "./IconSelectDropdown";
 
 // Example: this would actually come from your API
 const iconsFromDb = [
