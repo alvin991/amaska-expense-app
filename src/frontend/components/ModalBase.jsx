@@ -45,6 +45,14 @@ const ModalBase = ({
     return unsubscribe;
   }, [stateManager]);
 
+  // keep stateManager + transaction in sync when propTransaction changes
+  useEffect(() => {
+    const next = propTransaction ?? DEFAULT_TRANSACTION;
+    setTransaction(next);
+    stateManager.reset(PAGE_TYPES.TRANSACTION, next);
+    setNavStack([{ page: ROOT_PAGE, params: null }]);
+  }, [propTransaction, stateManager]);
+
   useEffect(() => {
     if (isOpen) {
       stateManager.reset(PAGE_TYPES.TRANSACTION, transaction);
