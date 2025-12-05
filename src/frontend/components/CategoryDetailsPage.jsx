@@ -59,6 +59,14 @@ const CategoryDetailsPage = ({
     setShowIconPicker(false);
   };
 
+  const handleColorChange = (newColor) => {
+    setFormData(prev => ({
+      ...prev,
+      color: newColor,
+    }));
+    setShowColorPicker(false);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -94,15 +102,6 @@ const CategoryDetailsPage = ({
     } finally {
       setDeleting(false);
     }
-  };
-
-  const openColorPicker = () => {
-    navigation.navigate('colorSelect', {
-      value: formData.color,
-      onColorChosen: (newColor) => {
-        setFormData(prev => ({ ...prev, color: newColor }));
-      },
-    });
   };
 
   return (
@@ -143,12 +142,14 @@ const CategoryDetailsPage = ({
           className="mb-3"
           style={{
             cursor: 'pointer',
-            padding: '8px 12px',
-            border: '1px solid #ddd',
-            borderRadius: 8,
-            backgroundColor: '#fafafa',
+            padding: showColorPicker ? '8px 12px' : 0,
+            border: showColorPicker ? '1px solid #ddd' : '1px solid transparent',
+            borderRadius: showColorPicker ? 8 : 0,
+            backgroundColor: showColorPicker ? '#fafafa' : 'transparent',
           }}
-          onClick={openColorPicker}
+          onClick={() => {
+            if (!showColorPicker) setShowColorPicker(true);
+          }}
         >
           <Form.Label
             style={{
@@ -160,24 +161,34 @@ const CategoryDetailsPage = ({
             Color
           </Form.Label>
 
-          <div
-            style={{
-              marginTop: '0.25rem',
-              display: 'flex',
-              justifyContent: 'center',
-            }}
-          >
+          {!showColorPicker && (
             <div
               style={{
-                width: 40,
-                height: 40,
-                borderRadius: '50%',
-                backgroundColor: selectedColor,
-                border: '3px solid #000',
-                boxShadow: '0 0 0 3px rgba(0,0,0,0.08)',
+                marginTop: '0.25rem',
+                display: 'flex',
+                justifyContent: 'center',
               }}
+            >
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: '50%',
+                  backgroundColor: selectedColor,
+                  border: '3px solid #000',
+                  boxShadow: '0 0 0 3px rgba(0,0,0,0.08)',
+                }}
+              />
+            </div>
+          )}
+
+          {showColorPicker && (
+            <ColorSelect
+              label={null}
+              value={selectedColor}
+              onChange={handleColorChange}
             />
-          </div>
+          )}
         </Form.Group>
 
         {/* Icon picker */}
