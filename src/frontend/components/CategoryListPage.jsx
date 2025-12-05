@@ -100,8 +100,8 @@ const CategoryListPage = ({
 
       <Button
         variant="success"
-        className="mt-3 w-100"
-        size="lg"
+        className="w-100"
+        size="md"
         onClick={handleCreateCategory}
       >
         New Category
