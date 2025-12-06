@@ -1,12 +1,20 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Table } from 'react-bootstrap';
 import {
   iconRegistry,
+  iconsFromDb,
   categoryToIconKey,
   getColorForIconKey,
 } from '../iconRegistry';
+import IconElement from "./IconElement";
 
-function DateGroupedTable({ data, onRowDoubleClick }) {
+function DateGroupedTable({ data, onRowDoubleClick, className, categories = [] }) {
+  const categoryMap = useMemo(() => {
+    const m = new Map();
+    categories.forEach(c => m.set(c.id, c));
+    return m;
+  }, [categories]);
+
   if (!data || data.length === 0) {
     return <p>No data to display.</p>;
   }
@@ -86,8 +94,13 @@ function DateGroupedTable({ data, onRowDoubleClick }) {
                 </td>
               </tr>
               {group.items.map((item) => {
-                const iconKey = categoryToIconKey(item.category);
+                const cat = item.category_id ? categoryMap.get(item.category_id) : null;
+                console.log(`Resolved category for item "${item.transaction_id}":`, cat);
+                const iconKey = categoryToIconKey(cat?.icon || item.category);
+                // console.log(`Mapping category "${item.category}" to iconKey "${iconKey}"`);
                 const IconComponent = iconKey ? iconRegistry[iconKey] : null;
+                // console.log(`Resolved IconComponent for iconKey "${iconKey}":`, IconComponent);
+                const iconInfo = iconsFromDb.find(ic => ic.id === cat?.icon);
                 const bgColor =
                   item.category_color || getColorForIconKey(iconKey);
 
@@ -122,7 +135,14 @@ function DateGroupedTable({ data, onRowDoubleClick }) {
                               flexShrink: 0,
                             }}
                           >
-                            <IconComponent size={iconSize} color="white" />
+                            <IconElement
+                              key={iconKey}
+                              iconKey={iconKey}
+                              label={iconInfo.label}
+                              size={iconSize}
+                              color={cat?.color || bgColor}
+                              showLabel={false}
+                            />
                           </div>
                         )}
                         <span>{item.category}</span>

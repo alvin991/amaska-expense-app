@@ -1,6 +1,6 @@
 import { iconRegistry } from "../iconRegistry";
 
-function IconElement({ iconKey, label, size, color, isSelected = false }) {
+function IconElement({ iconKey, label, size, color, isSelected = false, showLabel = true }) {
     const IconComponent = iconRegistry[iconKey];
     if (!IconComponent) return null;
 
@@ -33,9 +33,11 @@ function IconElement({ iconKey, label, size, color, isSelected = false }) {
             >
                 <IconComponent size={size} color="white" />
             </div>
-            <p style={{ marginTop: 8, marginBottom: 0, textAlign: "center" }}>
-                {label}
-            </p>
+            {showLabel && (
+                <p style={{ marginTop: 8, marginBottom: 0, textAlign: "center" }}>
+                    {label}
+                </p>
+            )}
         </div>
     );
 }

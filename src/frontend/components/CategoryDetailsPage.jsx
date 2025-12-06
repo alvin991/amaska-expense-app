@@ -230,6 +230,7 @@ const CategoryDetailsPage = ({
                   label={iconInfo.label}
                   size={iconSize}
                   color={selectedColor}
+                  showLabel={false}
                 />
               ) : (
                 <div

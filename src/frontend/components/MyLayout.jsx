@@ -129,6 +129,7 @@ function MyLayout() {
                 amount:         tx.amount,
                 merchant:       tx.merchant,
                 category:       tx.category_name,
+                category_id:     tx.category_id,
                 paymentMethod:  tx.payment_method_name,
                 _hidden:        ['transaction_id']
             }));
@@ -198,6 +199,7 @@ function MyLayout() {
             amount: tx.amount,
             merchant: tx.merchant,
             category: tx.category_name,
+            category_id:     tx.category_id,
             paymentMethod: tx.payment_method_name,
           })),
         [transactions]
@@ -299,6 +301,7 @@ function MyLayout() {
                         data={filteredTransactions}
                         onRowDoubleClick={handleRowDoubleClick}
                         className="position-fixed"
+                        categories={categories}
                     />
                 </div>
                 <ModalBase
