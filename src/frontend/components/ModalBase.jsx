@@ -1,6 +1,4 @@
 import { useState, useEffect } from 'react';
-import ModalStateManager from '../services/ModalStateManager';
-import { PAGE_TYPES } from '../types/PageConfig';
 import TransactionEntryPage, { DEFAULT_TRANSACTION } from './TransactionEntryPage';
 import CategoryListPage from './CategoryListPage';
 import CategoryDetailsPage, { DEFAULT_CATEGORY } from './CategoryDetailsPage';
@@ -23,13 +21,6 @@ const ModalBase = ({
   onHide,
 }) => {
   const effectiveTransaction = propTransaction ?? DEFAULT_TRANSACTION;
-
-  // --- SHARED MODAL STATE ----------------------------------------------------
-  const [stateManager] = useState(
-    () => new ModalStateManager(PAGE_TYPES.TRANSACTION, propTransaction)
-  );
-  const [state, setState] = useState(stateManager.getState());
-
   const [transactionOriginal, setTransactionOriginal] = useState(effectiveTransaction);
   const [transactionDraft, setTransactionDraft] = useState(effectiveTransaction);
   const [propCategory, setPropCategory] = useState(DEFAULT_CATEGORY);
@@ -44,9 +35,8 @@ const ModalBase = ({
     setTransactionOriginal(next);
     setTransactionDraft(next);
     setIsDirty(false);
-    stateManager.reset(PAGE_TYPES.TRANSACTION, next);
     setNavStack([{ page: ROOT_PAGE, params: null }]);
-  }, [propTransaction, stateManager]);
+  }, [propTransaction]);
 
   // recompute isDirty whenever draft changes
   useEffect(() => {
