@@ -7,6 +7,7 @@ import CategoryDetailsPage, { DEFAULT_CATEGORY } from './CategoryDetailsPage';
 import IconSelectPage from './IconSelectPage';
 import ColorSelectPage from './ColorSelectPage';
 import Modal from 'react-bootstrap/Modal';
+import MyConfirmBox from "./MyConfirmBox";
 
 const ROOT_PAGE = 'transaction';
 
@@ -23,6 +24,38 @@ const ModalBase = ({
 }) => {
   const effectiveTransaction = propTransaction ?? DEFAULT_TRANSACTION;
 
+  // --- SHARED MODAL STATE ----------------------------------------------------
+  const [stateManager] = useState(
+    () => new ModalStateManager(PAGE_TYPES.TRANSACTION, propTransaction)
+  );
+  const [state, setState] = useState(stateManager.getState());
+
+  const [transactionOriginal, setTransactionOriginal] = useState(effectiveTransaction);
+  const [transactionDraft, setTransactionDraft] = useState(effectiveTransaction);
+  const [propCategory, setPropCategory] = useState(DEFAULT_CATEGORY);
+
+  // --- LOCAL STATE FOR CONFIRM NAVIGATION -----------------------------------
+  const [isDirty, setIsDirty] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  // when the row / propTransaction changes
+  useEffect(() => {
+    const next = propTransaction ?? DEFAULT_TRANSACTION;
+    setTransactionOriginal(next);
+    setTransactionDraft(next);
+    setIsDirty(false);
+    stateManager.reset(PAGE_TYPES.TRANSACTION, next);
+    setNavStack([{ page: ROOT_PAGE, params: null }]);
+  }, [propTransaction, stateManager]);
+
+  // recompute isDirty whenever draft changes
+  useEffect(() => {
+    const o = transactionOriginal;
+    const d = transactionDraft;
+    const dirty = JSON.stringify(o) !== JSON.stringify(d);
+    setIsDirty(dirty);
+  }, [transactionOriginal, transactionDraft]);
+
   // --- NAVIGATION STACK ------------------------------------------------------
   // each entry: { page: string, params?: any }
   const [navStack, setNavStack] = useState([{ page: ROOT_PAGE, params: null }]);
@@ -31,39 +64,9 @@ const ModalBase = ({
   const currentPage = currentEntry?.page ?? ROOT_PAGE;
   const currentParams = currentEntry?.params ?? null;
 
-  // --- SHARED MODAL STATE ----------------------------------------------------
-  const [stateManager] = useState(
-    () => new ModalStateManager(PAGE_TYPES.TRANSACTION, propTransaction)
-  );
-  const [state, setState] = useState(stateManager.getState());
-  const [transaction, setTransaction] = useState(effectiveTransaction);
-  const [propCategory, setPropCategory] = useState(DEFAULT_CATEGORY);
-
-  // --- EFFECTS ---------------------------------------------------------------
-  useEffect(() => {
-    const unsubscribe = stateManager.subscribe(setState);
-    return unsubscribe;
-  }, [stateManager]);
-
-  // keep stateManager + transaction in sync when propTransaction changes
-  useEffect(() => {
-    const next = propTransaction ?? DEFAULT_TRANSACTION;
-    setTransaction(next);
-    stateManager.reset(PAGE_TYPES.TRANSACTION, next);
-    setNavStack([{ page: ROOT_PAGE, params: null }]);
-  }, [propTransaction, stateManager]);
-
-  useEffect(() => {
-    if (isOpen) {
-      stateManager.reset(PAGE_TYPES.TRANSACTION, transaction);
-      // reset navigation when modal is (re)opened
-      setNavStack([{ page: ROOT_PAGE, params: null }]);
-    }
-  }, [isOpen, stateManager, transaction]);
-
   // --- DOMAIN HELPERS --------------------------------------------------------
   const updateCategoryId = (categoryId) => {
-    setTransaction((prev) => ({
+    setTransactionDraft((prev) => ({
       ...prev,
       category_id: categoryId,
       category_name: categories.find((cat) => cat.id === categoryId)?.name ?? '',
@@ -130,19 +133,18 @@ const ModalBase = ({
 
   // --- RENDER SWITCH ---------------------------------------------------------
   const renderPageContent = () => {
-    console.log(`Current page: ${currentPage}`);
-
     switch (currentPage) {
     case 'transaction':
       return (
         <TransactionEntryPage
+          transaction={transactionDraft}          // draft, not original
           paymentMethods={paymentMethods}
           categories={categories}
-          transaction={transaction}
           navigation={navigation}
           refreshTransactions={refreshTransactions}
           onHide={onHide}
-          setTransaction={setTransaction}
+          onChangeDraft={setTransactionDraft}    // <-- updater
+          isDirty={isDirty}                      // <-- result of comparison
         />
       );
 
@@ -151,10 +153,14 @@ const ModalBase = ({
         <CategoryListPage
           categories={categories}
           categoriesUsed={categoriesUsed}
-          transaction={transaction}
-          updateCategoryId={updateCategoryId}
+          transaction={transactionDraft}
           navigation={navigation}
-          setTransaction={setTransaction}
+          onCategorySelected={(categoryId) => {
+            setTransactionDraft(prev => ({
+              ...prev,
+              category_id: categoryId,
+            }));
+          }}
         />
       );
 
@@ -164,6 +170,7 @@ const ModalBase = ({
           propCategory={propCategory}
           navigation={navigation}
           refreshCategories={refreshCategories}
+          onDirtyChange={setIsDirty}
         />
       );
 
@@ -188,66 +195,96 @@ const ModalBase = ({
     }
   };
 
+  const handleRequestClose = () => {
+    if (isDirty) {
+      setShowConfirm(true);
+    } else {
+      onHide();
+    }
+  };
+
+  const handleRequestBack = () => {
+    if (isDirty) {
+      setShowConfirm(true);
+    } else {
+      navigation.back();
+    }
+  };
+
   return (
-    <Modal
-      show={isOpen}
-      onHide={onHide}
-      dialogClassName="modal-90w"
-      size="lg"
-      centered
-      backdrop="static"
-      keyboard={false}
-    >
-      <Modal.Header
-        className="d-flex align-items-center"
-        style={{ position: 'relative' }}
+    <>
+      <Modal
+        show={isOpen}
+        onHide={handleRequestClose}
+        dialogClassName="modal-90w"
+        size="lg"
+        centered
+        backdrop="static"
+        keyboard={false}
       >
-        {/* Left (Back) */}
-        <div className="d-flex align-items-center" style={{ minWidth: 100 }}>
-          {currentPage !== 'transaction' && (
+        <Modal.Header
+          className="d-flex align-items-center"
+          style={{ position: 'relative' }}
+        >
+          {/* Left (Back) */}
+          <div className="d-flex align-items-center" style={{ minWidth: 100 }}>
+            {currentPage !== 'transaction' && (
+              <button
+                type="button"
+                className="btn btn-secondary btn-ms"
+                disabled={!navigation.canGoBack}
+                onClick={handleRequestBack}   // <-- use dirty-aware handler
+              >
+                &larr; Back
+              </button>
+            )}
+          </div>
+
+          {/* Center (Title) */}
+          <Modal.Title
+            className="text-center"
+            style={{
+              position: 'absolute',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: '60%',
+            }}
+          >
+            {getTitle()}
+          </Modal.Title>
+
+          {/* Right (Cancel) */}
+          <div
+            className="d-flex align-items-center justify-content-end ms-auto"
+            style={{ minWidth: 100 }}
+          >
             <button
               type="button"
               className="btn btn-secondary btn-ms"
-              disabled={!navigation.canGoBack}
-              onClick={navigation.back}
+              onClick={handleRequestClose}    // <-- was onHide
             >
-              &larr; Back
+              Cancel
             </button>
-          )}
-        </div>
+          </div>
+        </Modal.Header>
 
-        {/* Center (Title, truly centered) */}
-        <Modal.Title
-          className="text-center"
-          style={{
-            position: 'absolute',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: '60%', // so it doesn't overlap buttons
-          }}
-        >
-          {getTitle()}
-        </Modal.Title>
+        <Modal.Body>
+          {renderPageContent()}
+        </Modal.Body>
+      </Modal>
 
-        {/* Right (Cancel) */}
-        <div
-          className="d-flex align-items-center justify-content-end ms-auto"
-          style={{ minWidth: 100 }}
-        >
-          <button
-            type="button"
-            className="btn btn-secondary btn-ms"
-            onClick={onHide}
-          >
-            Cancel
-          </button>
-        </div>
-      </Modal.Header>
-
-      <Modal.Body>
-        {renderPageContent()}
-      </Modal.Body>
-    </Modal>
+      <MyConfirmBox
+        show={showConfirm}
+        title="Discard changes?"
+        message="You have unsaved changes. Do you really want to leave this page?"
+        onConfirm={() => {
+          setShowConfirm(false);
+          setIsDirty(false);
+          onHide();            // finally close
+        }}
+        onCancel={() => setShowConfirm(false)}
+      />
+    </>
   );
 };
 

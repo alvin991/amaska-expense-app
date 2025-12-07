@@ -7,9 +7,8 @@ const CategoryListPage = ({
   categories,
   categoriesUsed,
   transaction,
-  updateCategoryId,
-  setTransaction,
   navigation, // { navigate, back, resetToRoot, currentPage, canGoBack }
+  onCategorySelected,   // NEW
 }) => {
   const clickTimer = useRef(null);
 
@@ -17,25 +16,23 @@ const CategoryListPage = ({
   const otherCategories = categories.filter(el => !categoriesUsed.has(el.id));
 
   const handleCategoryClick = (categoryId) => {
-    // Delay single click to see if double click happens
     if (clickTimer.current) clearTimeout(clickTimer.current);
 
     clickTimer.current = setTimeout(() => {
       if (clickTimer.current) {
-        updateCategoryId(categoryId);
-        navigation.back(); // or navigation.navigate('transaction')
+        // console.log(`Category ${categoryId} clicked`);
+        onCategorySelected?.(categoryId);
+        navigation.back();
         clickTimer.current = null;
       }
-    }, 250); // 250ms is a common double-click threshold
+    }, 250);
   };
 
   const handleCategoryDoubleClick = (categoryId) => {
-    // Cancel single click timer
     if (clickTimer.current) {
       clearTimeout(clickTimer.current);
       clickTimer.current = null;
     }
-    // Navigate to category details
     const category = categories.find(cat => cat.id === categoryId);
     navigation.navigate('categoryDetails', { category });
   };

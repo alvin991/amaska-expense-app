@@ -95,7 +95,6 @@ function DateGroupedTable({ data, onRowDoubleClick, className, categories = [] }
               </tr>
               {group.items.map((item) => {
                 const cat = item.category_id ? categoryMap.get(item.category_id) : null;
-                console.log(`Resolved category for item "${item.transaction_id}":`, cat);
                 const iconKey = categoryToIconKey(cat?.icon || item.category);
                 // console.log(`Mapping category "${item.category}" to iconKey "${iconKey}"`);
                 const IconComponent = iconKey ? iconRegistry[iconKey] : null;

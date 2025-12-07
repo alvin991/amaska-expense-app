@@ -181,7 +181,6 @@ function MyLayout() {
     }, [currentYear, currentMonth]);
 
     const handleRowDoubleClick = (transactionId) => {
-        console.log(`Row double-clicked: ${transactionId}`)
         // If transactionId is null, it's a new transaction
         const transaction = transactionId ?
             transactions.find(t => t.transaction_id === transactionId) :

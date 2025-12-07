@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import axios from 'axios';
 import { Form, Button, Container } from 'react-bootstrap';
 import { iconRegistry, iconsFromDb } from "../iconRegistry";
@@ -17,28 +17,44 @@ export const DEFAULT_CATEGORY = {
 const CategoryDetailsPage = ({
   propCategory,
   refreshCategories,
-  navigation, // provided by ModalBase container
+  navigation,      // from ModalBase
+  onDirtyChange,   // NEW: from ModalBase
 }) => {
   const category =
     propCategory && Object.keys(propCategory).length > 0
       ? propCategory
       : DEFAULT_CATEGORY;
 
-  const [formData, setFormData] = useState({
-    name: category.name || '',
-    notes: category.description || '',
-    color: category.color || '#2196f3',
-    icon: category.icon || ''
-  });
+  const originalForm = useMemo(
+    () => ({
+      name: category.name || '',
+      notes: category.description || '',
+      color: category.color || '#2196f3',
+      icon: category.icon || ''
+    }),
+    [category]
+  );
 
+  const [formData, setFormData] = useState(originalForm);
   const [deleting, setDeleting] = useState(false);
   const [showIconPicker, setShowIconPicker] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
 
+  const isDirty =
+    formData.name !== originalForm.name ||
+    formData.notes !== originalForm.notes ||
+    formData.color !== originalForm.color ||
+    formData.icon !== originalForm.icon;
+
+  // notify ModalBase whenever dirty state changes
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
+
   const iconKey = formData.icon || category.icon;
   const IconComponent = iconKey ? iconRegistry[iconKey] : null;
   const iconInfo =
-    iconsFromDb.find(ic => ic.id === (formData.icon || category.icon)) ||
+    iconsFromDb.find(ic => ic.id === iconKey) ||
     { label: 'Select an icon', color: '#000' };
   const iconSize = 24;
   const selectedColor = formData.color || '#2196f3';
@@ -84,7 +100,8 @@ const CategoryDetailsPage = ({
       }
 
       await refreshCategories();
-      navigation.back();
+      onDirtyChange?.(false);   // clean after save
+      navigation.back();        // ModalBase will just close because isDirty=false
     } catch (error) {
       console.error('Error saving category:', error);
     }
@@ -96,12 +113,18 @@ const CategoryDetailsPage = ({
     try {
       await axios.delete(`/api/categories/${category.id}`);
       await refreshCategories();
+      onDirtyChange?.(false);
       navigation.back();
     } catch (error) {
       console.error('Error deleting category:', error);
     } finally {
       setDeleting(false);
     }
+  };
+
+  const handleCancel = () => {
+    // Do NOT handle confirm here; delegate to ModalBase
+    navigation.back();
   };
 
   return (
@@ -253,12 +276,13 @@ const CategoryDetailsPage = ({
           )}
         </Form.Group>
 
-        <Button 
-          variant="primary" 
+        <Button
+          variant="primary"
           type="submit"
           className="w-100 mb-3"
+          disabled={!isDirty}
         >
-          Save
+          {category?.id ? 'Update' : 'Create'}
         </Button>
 
         {category?.id && (

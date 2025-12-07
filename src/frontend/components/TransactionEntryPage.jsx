@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Form, Container, Button, InputGroup } from 'react-bootstrap';
 import axios from 'axios';
 import ConfirmationModal from './MyConfirmBox';
@@ -17,15 +17,16 @@ export const DEFAULT_TRANSACTION = {
 };
 
 function TransactionEntryPage({
-  transaction = {},
+  transaction = {},          // draft
   paymentMethods = [],
   categories = [],
-  navigation,                 // <-- container navigation object
+  navigation,
   refreshTransactions,
   onHide,
-  setTransaction,             // <-- container state setter
+  onChangeDraft,             // updater from ModalBase
+  isDirty,                   // computed in ModalBase
 }) {
-  // local UI state only
+  // local UI state
   const [formData, setFormData] = useState({
     amount: '',
     merchant: '',
@@ -36,41 +37,43 @@ function TransactionEntryPage({
   });
 
   const [isAmountFocused, setIsAmountFocused] = useState(false);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-
-  // keep formData in sync with transaction from container
   useEffect(() => {
-    console.log(`transaction: ${JSON.stringify(transaction, null, 2)}`);
     setFormData({
-      amount: transaction.amount || '',
-      merchant: transaction.merchant || '',
-      paymentMethod: transaction.payment_method_id || '',
-      category: transaction.category_id || '',
-      date: transaction.transaction_date?.split('T')[0]
-        || new Date().toISOString().split('T')[0],
-      notes: transaction.notes || ''
+      amount: transaction.amount ?? '',
+      merchant: transaction.merchant ?? '',
+      paymentMethod: transaction.payment_method_id ?? '',
+      category: transaction.category_id ?? '',
+      date:
+        transaction.transaction_date?.split('T')[0] ||
+        transaction.date ||
+        new Date().toISOString().split('T')[0],
+      notes: transaction.notes ?? '',
     });
-  }, [transaction]);
+  }, [transaction?.transaction_id]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    // reflect in container-level transaction state
-    setTransaction(prev => ({ ...prev, [name]: value }));
-    // and mirror to local formData for fields that are displayed from formData
-    setFormData(prev => ({ ...prev, [name === 'transaction_date' ? 'date' : name]: value }));
+    const key = name === 'transaction_date' ? 'date' : name;
+
+    setFormData(prev => ({ ...prev, [key]: value }));
+
+    onChangeDraft?.(prev => ({
+      ...prev,
+      merchant: key === 'merchant' ? value : prev.merchant,
+      notes:    key === 'notes'    ? value : prev.notes,
+      transaction_date:
+        key === 'date' ? value : (prev.transaction_date || prev.date),
+    }));
   };
 
   const handleAmountChange = (e) => {
     let v = e.target.value.replace(/[^0-9.]/g, '');
     const parts = v.split('.');
-    if (parts.length > 2) {
-      v = parts[0] + '.' + parts.slice(1).join('');
-    }
-
-    setTransaction(prev => ({ ...prev, amount: v }));
+    if (parts.length > 2) v = parts[0] + '.' + parts.slice(1).join('');
     setFormData(prev => ({ ...prev, amount: v }));
+    onChangeDraft?.(prev => ({ ...prev, amount: v }));
   };
-
+  
   const handleAmountFocus = () => setIsAmountFocused(true);
 
   const handleAmountBlur = () => {
@@ -80,12 +83,28 @@ function TransactionEntryPage({
     const num = Number(v);
     if (Number.isNaN(num)) {
       setFormData(prev => ({ ...prev, amount: '' }));
-      setTransaction(prev => ({ ...prev, amount: '' }));
+      onChangeDraft?.(prev => ({ ...prev, amount: '' }));
       return;
     }
     const formatted = num.toFixed(2);
     setFormData(prev => ({ ...prev, amount: formatted }));
-    setTransaction(prev => ({ ...prev, amount: formatted }));
+    onChangeDraft?.(prev => ({ ...prev, amount: formatted }));
+  };
+
+  const handlePaymentMethodChange = (e) => {
+    const newId = parseInt(e.target.value) || '';
+    setFormData(prev => ({ ...prev, paymentMethod: newId }));
+    onChangeDraft?.(prev => ({ ...prev, payment_method_id: newId || null }));
+  };
+
+  const handleSelectClick = (e) => {
+    e.preventDefault();
+    navigation.navigate('categoryList', {
+      onCategorySelected: (categoryId) => {
+        setFormData(prev => ({ ...prev, category: categoryId }));
+        onChangeDraft?.(prev => ({ ...prev, category_id: categoryId || null }));
+      },
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -124,6 +143,7 @@ function TransactionEntryPage({
       await axios.delete(`/api/transactions/${transaction.transaction_id}`);
       setShowConfirmModal(false);
       await refreshTransactions();
+      onDirtyChange?.(false);
       onHide();
     } catch (error) {
       console.error('Error deleting transaction:', error);
@@ -134,26 +154,11 @@ function TransactionEntryPage({
     setShowConfirmModal(false);
   };
 
-  const handleSelectClick = (e) => {
-    e.preventDefault();
-    // use container navigation instead of onNavigate string
-    navigation.navigate('categoryList');
-  };
 
-  const handlePaymentMethodChange = (e) => {
-    const newId = parseInt(e.target.value);
-    const selectedMethod = paymentMethods.find(pm => pm.id === newId);
 
-    setTransaction(prev => ({
-      ...prev,
-      payment_method_id: newId,
-      payment_method_name: selectedMethod ? selectedMethod.name : ''
-    }));
-
-    setFormData(prev => ({
-      ...prev,
-      paymentMethod: newId
-    }));
+  // optional: page-level Cancel button (uses navigation.back -> ModalBase confirm)
+  const handleCancel = () => {
+    navigation.back();
   };
 
   return (
@@ -211,11 +216,11 @@ function TransactionEntryPage({
           <Form.Label>Category</Form.Label>
           <Form.Select
             name="category"
-            value={formData.category}
+            value={formData.category}          // <-- use formData
             onMouseDown={handleSelectClick}
             onChange={(e) => e.preventDefault()}
           >
-            {transaction.category_id === '' && <option value="">Select Category</option>}
+            {formData.category === '' && <option value="">Select Category</option>}
             {categories.map((category) => (
               <option key={category.id} value={category.id}>
                 {category.name}
@@ -247,7 +252,11 @@ function TransactionEntryPage({
         </Form.Group>
 
         <div className="d-grid gap-2 mb-3">
-          <Button variant="primary" type="submit">
+          <Button
+            variant="primary"
+            type="submit"
+            disabled={!isDirty}   // uses ModalBase’s comparison result
+          >
             {transaction.transaction_id ? 'Update' : 'Create'}
           </Button>
         </div>
@@ -264,13 +273,13 @@ function TransactionEntryPage({
         </div>
       </Form>
 
-      <ConfirmationModal
+      {/* <ConfirmationModal
         show={showConfirmModal}
         title="Confirm Deletion"
         message="Are you sure you want to delete this item? This action cannot be undone."
         onConfirm={handleConfirmDelete}
         onCancel={handleCancelDelete}
-      />
+      /> */}
     </Container>
   );
 }
