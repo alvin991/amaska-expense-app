@@ -6,6 +6,9 @@ import IconSelectPage from './IconSelectPage';
 import ColorSelectPage from './ColorSelectPage';
 import Modal from 'react-bootstrap/Modal';
 import MyConfirmBox from "./MyConfirmBox";
+import { useModalConfirm } from '../hooks/useModalConfirm';
+import { deleteTransactionById } from '../services/transactionService';
+import { deleteCategoryById } from '../services/categoryService';
 
 const ROOT_PAGE = 'transaction';
 
@@ -27,7 +30,13 @@ const ModalBase = ({
 
   // --- LOCAL STATE FOR CONFIRM NAVIGATION -----------------------------------
   const [isDirty, setIsDirty] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
+
+  // --- NAVIGATION STACK ------------------------------------------------------
+  const [navStack, setNavStack] = useState([{ page: ROOT_PAGE, params: null }]);
+
+  const currentEntry = navStack[navStack.length - 1];
+  const currentPage = currentEntry?.page ?? ROOT_PAGE;
+  const currentParams = currentEntry?.params ?? null;
 
   // when the row / propTransaction changes
   useEffect(() => {
@@ -46,26 +55,8 @@ const ModalBase = ({
     setIsDirty(dirty);
   }, [transactionOriginal, transactionDraft]);
 
-  // --- NAVIGATION STACK ------------------------------------------------------
-  // each entry: { page: string, params?: any }
-  const [navStack, setNavStack] = useState([{ page: ROOT_PAGE, params: null }]);
-
-  const currentEntry = navStack[navStack.length - 1];
-  const currentPage = currentEntry?.page ?? ROOT_PAGE;
-  const currentParams = currentEntry?.params ?? null;
-
-  // --- DOMAIN HELPERS --------------------------------------------------------
-  const updateCategoryId = (categoryId) => {
-    setTransactionDraft((prev) => ({
-      ...prev,
-      category_id: categoryId,
-      category_name: categories.find((cat) => cat.id === categoryId)?.name ?? '',
-    }));
-  };
-
   // --- NAVIGATION API (CONTAINER RESPONSIBILITY) -----------------------------
   const navigate = (page, params = null) => {
-    // optional: keep some derived state in container
     if (page === 'categoryDetails') {
       if (params?.category) {
         setPropCategory(params.category);
@@ -98,7 +89,6 @@ const ModalBase = ({
     navigate,
     back,
     resetToRoot,
-    // expose where we are if needed by presentation components
     currentPage,
     canGoBack: navStack.length > 1,
   };
@@ -121,73 +111,97 @@ const ModalBase = ({
     }
   };
 
+  const deleteTransaction = async () => {
+    if (!transactionDraft?.transaction_id) return;
+    await deleteTransactionById(transactionDraft.transaction_id);
+    if (refreshTransactions) await refreshTransactions();
+  };
+
+  const deleteCategory = async () => {
+    if (!propCategory?.id) return;
+    await deleteCategoryById(propCategory.id);
+    if (refreshCategories) await refreshCategories();
+  };
+
+  // --- CONFIRM CONTROLLER HOOK ----------------------------------------------
+  const confirm = useModalConfirm({
+    deleteTransaction,
+    deleteCategory,
+    onHide,
+    navigationBack: back,
+    clearDirty: () => setIsDirty(false),
+  });
+
   // --- RENDER SWITCH ---------------------------------------------------------
   const renderPageContent = () => {
     switch (currentPage) {
-    case 'transaction':
-      return (
-        <TransactionEntryPage
-          transaction={transactionDraft}          // draft, not original
-          paymentMethods={paymentMethods}
-          categories={categories}
-          navigation={navigation}
-          refreshTransactions={refreshTransactions}
-          onHide={onHide}
-          onChangeDraft={setTransactionDraft}    // <-- updater
-          isDirty={isDirty}                      // <-- result of comparison
-        />
-      );
+      case 'transaction':
+        return (
+          <TransactionEntryPage
+            transaction={transactionDraft}          // draft, not original
+            paymentMethods={paymentMethods}
+            categories={categories}
+            navigation={navigation}
+            refreshTransactions={refreshTransactions}
+            onHide={onHide}
+            onChangeDraft={setTransactionDraft}    // updater
+            isDirty={isDirty}
+            onDelete={confirm.openDeleteTransaction} // transaction delete -> confirm
+          />
+        );
 
-    case 'categoryList':
-      return (
-        <CategoryListPage
-          categories={categories}
-          categoriesUsed={categoriesUsed}
-          transaction={transactionDraft}
-          navigation={navigation}
-          onCategorySelected={(categoryId) => {
-            setTransactionDraft(prev => ({
-              ...prev,
-              category_id: categoryId,
-            }));
-          }}
-        />
-      );
+      case 'categoryList':
+        return (
+          <CategoryListPage
+            categories={categories}
+            categoriesUsed={categoriesUsed}
+            transaction={transactionDraft}
+            navigation={navigation}
+            onCategorySelected={(categoryId) => {
+              setTransactionDraft(prev => ({
+                ...prev,
+                category_id: categoryId,
+              }));
+            }}
+          />
+        );
 
-    case 'categoryDetails':
-      return (
-        <CategoryDetailsPage
-          propCategory={propCategory}
-          navigation={navigation}
-          refreshCategories={refreshCategories}
-          onDirtyChange={setIsDirty}
-        />
-      );
+      case 'categoryDetails':
+        return (
+          <CategoryDetailsPage
+            propCategory={propCategory}
+            navigation={navigation}
+            refreshCategories={refreshCategories}
+            onDirtyChange={setIsDirty}
+            onDelete={confirm.openDeleteCategory}   // << use hook
+          />
+        );
 
-    case 'iconSelect':
-      return (
-        <IconSelectPage
-          navigation={navigation}
-          {...currentParams}   // expects { selectedIconKey, onIconChosen, icons? }
-        />
-      );
+      case 'iconSelect':
+        return (
+          <IconSelectPage
+            navigation={navigation}
+            {...currentParams}
+          />
+        );
 
-    case 'colorSelect':
-      return (
-        <ColorSelectPage
-          navigation={navigation}
-          {...currentParams}   // expects { value, onColorChosen, colors? }
-        />
-      );
+      case 'colorSelect':
+        return (
+          <ColorSelectPage
+            navigation={navigation}
+            {...currentParams}
+          />
+        );
 
-    default:
-      return null;
+      default:
+        return null;
     }
   };
 
+  // --- CLOSE/BACK USING CONFIRM CONTROLLER ----------------------------------
   const handleRequestClose = () => {
     if (isDirty) {
-      setShowConfirm(true);
+      confirm.openDiscardCancel();
     } else {
       onHide();
     }
@@ -195,7 +209,7 @@ const ModalBase = ({
 
   const handleRequestBack = () => {
     if (isDirty) {
-      setShowConfirm(true);
+      confirm.openDiscardBack();
     } else {
       navigation.back();
     }
@@ -223,7 +237,7 @@ const ModalBase = ({
                 type="button"
                 className="btn btn-secondary btn-ms"
                 disabled={!navigation.canGoBack}
-                onClick={handleRequestBack}   // <-- use dirty-aware handler
+                onClick={handleRequestBack}
               >
                 &larr; Back
               </button>
@@ -251,7 +265,7 @@ const ModalBase = ({
             <button
               type="button"
               className="btn btn-secondary btn-ms"
-              onClick={handleRequestClose}    // <-- was onHide
+              onClick={handleRequestClose}
             >
               Cancel
             </button>
@@ -261,18 +275,17 @@ const ModalBase = ({
         <Modal.Body>
           {renderPageContent()}
         </Modal.Body>
+
+        {/* You can add a common Delete footer here and use confirm.openDeleteTransaction /
+            confirm.openDeleteCategory depending on currentPage if you want */}
       </Modal>
 
       <MyConfirmBox
-        show={showConfirm}
-        title="Discard changes?"
-        message="You have unsaved changes. Do you really want to leave this page?"
-        onConfirm={() => {
-          setShowConfirm(false);
-          setIsDirty(false);
-          onHide();            // finally close
-        }}
-        onCancel={() => setShowConfirm(false)}
+        show={confirm.showConfirm}
+        title={confirm.title}
+        message={confirm.message}
+        onConfirm={confirm.handleConfirm}
+        onCancel={confirm.handleCancel}
       />
     </>
   );

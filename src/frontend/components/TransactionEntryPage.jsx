@@ -1,7 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Form, Container, Button, InputGroup } from 'react-bootstrap';
-import axios from 'axios';
-import ConfirmationModal from './MyConfirmBox';
+import { saveTransaction } from '../services/transactionService';
 
 export const DEFAULT_TRANSACTION = {
   transaction_id: null,
@@ -25,6 +24,7 @@ function TransactionEntryPage({
   onHide,
   onChangeDraft,             // updater from ModalBase
   isDirty,                   // computed in ModalBase
+  onDelete,                  // comes from ModalBase/useModalConfirm
 }) {
   // local UI state
   const [formData, setFormData] = useState({
@@ -37,6 +37,7 @@ function TransactionEntryPage({
   });
 
   const [isAmountFocused, setIsAmountFocused] = useState(false);
+
   useEffect(() => {
     setFormData({
       amount: transaction.amount ?? '',
@@ -73,7 +74,7 @@ function TransactionEntryPage({
     setFormData(prev => ({ ...prev, amount: v }));
     onChangeDraft?.(prev => ({ ...prev, amount: v }));
   };
-  
+
   const handleAmountFocus = () => setIsAmountFocused(true);
 
   const handleAmountBlur = () => {
@@ -110,55 +111,12 @@ function TransactionEntryPage({
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const payload = {
-        user_id: 1,
-        amount: parseFloat(formData.amount) || 0,
-        notes: formData.notes,
-        transaction_date: formData.date,
-        merchant: formData.merchant,
-        category_id: parseInt(formData.category) || null,
-        payment_method_id: parseInt(formData.paymentMethod) || null,
-      };
-
-      if (transaction?.transaction_id) {
-        await axios.put(`/api/transactions/${transaction.transaction_id}`, payload);
-      } else {
-        await axios.post('/api/transactions', payload);
-      }
-
+      await saveTransaction(transaction);
       await refreshTransactions();
       onHide();
     } catch (error) {
       console.error('Error saving transaction:', error);
     }
-  };
-
-  const handleDelete = () => {
-    if (!transaction?.transaction_id) return;
-    setShowConfirmModal(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    try {
-      await axios.delete(`/api/transactions/${transaction.transaction_id}`);
-      setShowConfirmModal(false);
-      await refreshTransactions();
-      onDirtyChange?.(false);
-      onHide();
-    } catch (error) {
-      console.error('Error deleting transaction:', error);
-    }
-  };
-
-  const handleCancelDelete = () => {
-    setShowConfirmModal(false);
-  };
-
-
-
-  // optional: page-level Cancel button (uses navigation.back -> ModalBase confirm)
-  const handleCancel = () => {
-    navigation.back();
   };
 
   return (
@@ -216,7 +174,7 @@ function TransactionEntryPage({
           <Form.Label>Category</Form.Label>
           <Form.Select
             name="category"
-            value={formData.category}          // <-- use formData
+            value={formData.category}
             onMouseDown={handleSelectClick}
             onChange={(e) => e.preventDefault()}
           >
@@ -255,7 +213,7 @@ function TransactionEntryPage({
           <Button
             variant="primary"
             type="submit"
-            disabled={!isDirty}   // uses ModalBase’s comparison result
+            disabled={!isDirty}
           >
             {transaction.transaction_id ? 'Update' : 'Create'}
           </Button>
@@ -266,20 +224,12 @@ function TransactionEntryPage({
             variant="danger"
             type="button"
             style={{ display: transaction.transaction_id ? 'block' : 'none' }}
-            onClick={handleDelete}
+            onClick={onDelete}   // delegates to ModalBase/useModalConfirm
           >
             Delete
           </Button>
         </div>
       </Form>
-
-      {/* <ConfirmationModal
-        show={showConfirmModal}
-        title="Confirm Deletion"
-        message="Are you sure you want to delete this item? This action cannot be undone."
-        onConfirm={handleConfirmDelete}
-        onCancel={handleCancelDelete}
-      /> */}
     </Container>
   );
 }

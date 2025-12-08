@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
-import axios from 'axios';
 import { Form, Button, Container } from 'react-bootstrap';
+import { saveCategory } from '../services/categoryService';
 import { iconRegistry, iconsFromDb } from "../iconRegistry";
 import IconElement from "./IconElement";
 import IconSelect from './IconSelect';
@@ -18,7 +18,8 @@ const CategoryDetailsPage = ({
   propCategory,
   refreshCategories,
   navigation,      // from ModalBase
-  onDirtyChange,   // NEW: from ModalBase
+  onDirtyChange,   // from ModalBase
+  onDelete,        // NEW: from ModalBase/useModalConfirm
 }) => {
   const category =
     propCategory && Object.keys(propCategory).length > 0
@@ -36,7 +37,6 @@ const CategoryDetailsPage = ({
   );
 
   const [formData, setFormData] = useState(originalForm);
-  const [deleting, setDeleting] = useState(false);
   const [showIconPicker, setShowIconPicker] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
 
@@ -46,7 +46,6 @@ const CategoryDetailsPage = ({
     formData.color !== originalForm.color ||
     formData.icon !== originalForm.icon;
 
-  // notify ModalBase whenever dirty state changes
   useEffect(() => {
     onDirtyChange?.(isDirty);
   }, [isDirty, onDirtyChange]);
@@ -86,45 +85,20 @@ const CategoryDetailsPage = ({
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const payload = {
+      const cat = {
+        id: category.id,
         name: formData.name,
         description: formData.notes,
         color: formData.color,
-        icon: formData.icon
+        icon: formData.icon,
       };
-
-      if (category?.id) {
-        await axios.put(`/api/categories/${category.id}`, payload);
-      } else {
-        await axios.post('/api/categories', payload);
-      }
-
-      await refreshCategories();
-      onDirtyChange?.(false);   // clean after save
-      navigation.back();        // ModalBase will just close because isDirty=false
-    } catch (error) {
-      console.error('Error saving category:', error);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!category?.id) return;
-    setDeleting(true);
-    try {
-      await axios.delete(`/api/categories/${category.id}`);
+      await saveCategory(cat);
       await refreshCategories();
       onDirtyChange?.(false);
       navigation.back();
     } catch (error) {
-      console.error('Error deleting category:', error);
-    } finally {
-      setDeleting(false);
+      console.error('Error saving category:', error);
     }
-  };
-
-  const handleCancel = () => {
-    // Do NOT handle confirm here; delegate to ModalBase
-    navigation.back();
   };
 
   return (
@@ -289,10 +263,10 @@ const CategoryDetailsPage = ({
           <Button
             variant="danger"
             className="w-100"
-            onClick={handleDelete}
-            disabled={deleting}
+            type="button"
+            onClick={onDelete}   // delegate to ModalBase/useModalConfirm
           >
-            {deleting ? 'Deleting...' : 'Delete'}
+            Delete
           </Button>
         )}
       </Form>
