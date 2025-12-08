@@ -124,11 +124,18 @@ const ModalBase = ({
     if (refreshCategories) await refreshCategories();
   };
 
+  const actuallyHide = () => {
+    setTransactionDraft(DEFAULT_TRANSACTION);
+    setTransactionOriginal(DEFAULT_TRANSACTION);
+    setIsDirty(false);
+    onHide();
+  };
+
   // --- CONFIRM CONTROLLER HOOK ----------------------------------------------
   const confirm = useModalConfirm({
     deleteTransaction,
     deleteCategory,
-    onHide,
+    onHide: actuallyHide,      // use wrapper, not raw onHide
     navigationBack: back,
     clearDirty: () => setIsDirty(false),
   });
@@ -139,15 +146,15 @@ const ModalBase = ({
       case 'transaction':
         return (
           <TransactionEntryPage
-            transaction={transactionDraft}          // draft, not original
+            transaction={transactionDraft}
             paymentMethods={paymentMethods}
             categories={categories}
             navigation={navigation}
             refreshTransactions={refreshTransactions}
-            onHide={onHide}
-            onChangeDraft={setTransactionDraft}    // updater
+            onHide={actuallyHide}
+            onChangeDraft={setTransactionDraft}
             isDirty={isDirty}
-            onDelete={confirm.openDeleteTransaction} // transaction delete -> confirm
+            onDelete={confirm.openDeleteTransaction}
           />
         );
 
@@ -204,7 +211,7 @@ const ModalBase = ({
     if (isDirty) {
       confirm.openDiscardCancel();
     } else {
-      onHide();
+      actuallyHide();
     }
   };
 

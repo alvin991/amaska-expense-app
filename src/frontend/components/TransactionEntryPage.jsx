@@ -37,7 +37,7 @@ function TransactionEntryPage({
         new Date().toISOString().split('T')[0],
       notes: transaction.notes ?? '',
     });
-  }, [transaction?.transaction_id]);
+  }, [transaction]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
