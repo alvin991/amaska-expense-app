@@ -27,19 +27,14 @@ const ModalBase = ({
   const effectiveTransaction = propTransaction ?? DEFAULT_TRANSACTION;
   const [transactionOriginal, setTransactionOriginal] = useState(effectiveTransaction);
   const [transactionDraft, setTransactionDraft] = useState(effectiveTransaction);
-  const [propCategory, setPropCategory] = useState(DEFAULT_CATEGORY);
 
-  // --- LOCAL STATE FOR CONFIRM NAVIGATION -----------------------------------
   const [isDirty, setIsDirty] = useState(false);
-
-  // --- NAVIGATION STACK ------------------------------------------------------
   const [navStack, setNavStack] = useState([{ page: ROOT_PAGE, params: null }]);
-
+  
   const currentEntry = navStack[navStack.length - 1];
   const currentPage = currentEntry?.page ?? ROOT_PAGE;
   const currentParams = currentEntry?.params ?? null;
-
-  // when the row / propTransaction changes
+  
   useEffect(() => {
     const next = propTransaction ?? DEFAULT_TRANSACTION;
     setTransactionOriginal(next);

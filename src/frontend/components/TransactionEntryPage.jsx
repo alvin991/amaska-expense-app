@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Form, Container, Button, InputGroup } from 'react-bootstrap';
 import { saveTransaction } from '../services/transactionService';
 import { validateTransactionForm } from '../utils/formValidation';
@@ -24,11 +24,20 @@ function TransactionEntryPage({
   });
 
   const [isAmountFocused, setIsAmountFocused] = useState(false);
-  const [errors, setErrors] = useState({});   // NEW
+  const [errors, setErrors] = useState({});
+  const amountInputRef = useRef(null);
 
   useEffect(() => {
+    const amountNumber =
+      typeof transaction.amount === 'number'
+        ? transaction.amount
+        : Number(transaction.amount);
+
     setFormData({
-      amount: transaction.amount ?? '',
+      amount:
+        !Number.isNaN(amountNumber) && amountNumber !== undefined && amountNumber !== null
+          ? amountNumber.toFixed(2)            // <- formatted from API
+          : '',
       merchant: transaction.merchant ?? '',
       paymentMethod: transaction.payment_method_id ?? '',
       category: transaction.category_id ?? '',
@@ -39,7 +48,7 @@ function TransactionEntryPage({
       notes: transaction.notes ?? '',
     });
     setErrors({});
-  }, [transaction]);
+  }, [transaction.transaction_id]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -57,29 +66,50 @@ function TransactionEntryPage({
   };
 
   const handleAmountChange = (e) => {
-    let v = e.target.value.replace(/[^0-9.]/g, '');
+    let v = e.target.value;
+    // Remove everything except digits and dot
+    v = v.replace(/[^0-9.]/g, '');
+    // Allow at most one dot
     const parts = v.split('.');
-    if (parts.length > 2) v = parts[0] + '.' + parts.slice(1).join('');
+    if (parts.length > 2) {
+      v = parts[0] + '.' + parts.slice(1).join('');
+    }
+    // Update form state as raw string
     setFormData(prev => ({ ...prev, amount: v }));
-    onChangeDraft?.(prev => ({ ...prev, amount: v }));
+    // Update draft as number when possible, otherwise leave as previous
+    const num = Number(v);
+    onChangeDraft?.(prev => ({
+      ...prev,
+      amount: v === '' || Number.isNaN(num) ? prev.amount ?? 0 : num,
+    }));
   };
 
-  const handleAmountFocus = () => setIsAmountFocused(true);
+  const handleAmountFocus = (e) => {
+    setIsAmountFocused(true);
+    // highlight entire value
+    requestAnimationFrame(() => {
+      const el = amountInputRef.current;
+      if (!el) return;
+      el.setSelectionRange(0, el.value.length);
+    });
+  };
 
   const handleAmountBlur = () => {
     setIsAmountFocused(false);
     const v = formData.amount;
     if (v === '' || v === null) return;
+
     const num = Number(v);
     if (Number.isNaN(num)) {
       setFormData(prev => ({ ...prev, amount: '' }));
-      onChangeDraft?.(prev => ({ ...prev, amount: '' }));
+      onChangeDraft?.(prev => ({ ...prev, amount: 0 }));
       setErrors(prev => ({ ...prev, amount: 'Amount must be numeric.' }));
       return;
     }
+
     const formatted = num.toFixed(2);
     setFormData(prev => ({ ...prev, amount: formatted }));
-    onChangeDraft?.(prev => ({ ...prev, amount: formatted }));
+    onChangeDraft?.(prev => ({ ...prev, amount: num }));
   };
 
   const handlePaymentMethodChange = (e) => {
@@ -133,13 +163,10 @@ function TransactionEntryPage({
           <InputGroup>
             <InputGroup.Text>$</InputGroup.Text>
             <Form.Control
+              ref={amountInputRef}
               type="text"
               name="amount"
-              value={
-                isAmountFocused
-                  ? formData.amount
-                  : (formData.amount !== '' ? Number(formData.amount).toFixed(2) : '')
-              }
+              value={formData.amount}
               onChange={handleAmountChange}
               onFocus={handleAmountFocus}
               onBlur={handleAmountBlur}

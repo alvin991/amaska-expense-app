@@ -6,13 +6,8 @@ export function validateTransactionForm(formData) {
   const errors = {};
 
   // Amount
-  if (!formData.amount || formData.amount.trim() === '') {
+  if (!formData.amount && Number.isNaN(formData.amount)) {
     errors.amount = 'Amount is required.';
-  } else {
-    const num = Number(formData.amount);
-    if (Number.isNaN(num) || num <= 0) {
-      errors.amount = 'Amount must be a number greater than 0.';
-    }
   }
 
   // Merchant (required; relax if you want)

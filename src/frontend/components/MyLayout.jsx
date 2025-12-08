@@ -17,6 +17,8 @@ function MyLayout() {
     let [filteredTransactions, setFilteredTransactions] = useState([]);
     const [showModal, setShowModal] = useState(false);
     const [selectedTransaction, setSelectedTransaction] = useState(null);
+    //Using key={transactionKey} forces React to unmount/remount ModalBase whenever double‑click (even the same row)
+    const [transactionKey, setTransactionKey] = useState(0);
     const [chartDataByCategory, setChartDataByCategory] = useState([]);
     const [chartDataByPaymentMethod, setChartDataByPaymentMethod] = useState([]);
     const [periodTotalAmount, setPeriodTotalAmount] = useState(0.00);
@@ -181,13 +183,22 @@ function MyLayout() {
     }, [currentYear, currentMonth]);
 
     const handleRowDoubleClick = (transactionId) => {
-        // If transactionId is null, it's a new transaction
         const transaction = transactionId ?
             transactions.find(t => t.transaction_id === transactionId) :
             null;
-
-        setSelectedTransaction(transaction);
+        setSelectedTransaction(transaction || null);
+        setTransactionKey(prev => prev + 1);                     // NEW
         setShowModal(true);
+    };
+
+    const handleNewTransactionClick = () => {
+        setSelectedTransaction(null);
+        setTransactionKey(prev => prev + 1);                     // NEW
+        setShowModal(true);
+    };
+
+    const handleHideModal = () => {
+        setShowModal(false);
     };
 
     const normalizedTransactions = useMemo(
@@ -237,11 +248,6 @@ function MyLayout() {
         ...filteredTransactions
     ];
 
-    const handleNewTransactionClick = () => {
-        // open modal with no selected transaction
-        setSelectedTransaction(null);
-        setShowModal(true);
-    };
 
     const handleChangeMonth = (year, monthIndex0Based) => {
         setCurrentYear(year);
@@ -304,15 +310,16 @@ function MyLayout() {
                     />
                 </div>
                 <ModalBase
+                  key={transactionKey}          // <--- force re-mount OR:
+                  propTransaction={selectedTransaction}
                   paymentMethods={paymentMethods}
                   categories={categories}
-                  propTransaction={selectedTransaction}
                   categoriesUsed={categoriesUsed}
                   isOpen={showModal}
                   refreshTransactions={refreshTransactions}
                   refreshCategories={refreshCategories}
                   refreshPaymentMethods={refreshPaymentMethods}
-                  onHide={() => setShowModal(false)}
+                  onHide={handleHideModal}
                 />
             </div>
         </div>
