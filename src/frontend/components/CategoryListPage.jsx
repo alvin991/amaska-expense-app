@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { Button } from 'react-bootstrap';
 import './CategoryListPage.css';
-import { DEFAULT_CATEGORY } from './CategoryDetailsPage';
+import { DEFAULT_CATEGORY } from '../constants/defaults';   // <-- shared import
 
 const CategoryListPage = ({
   categories,

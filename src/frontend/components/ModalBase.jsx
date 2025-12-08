@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import TransactionEntryPage, { DEFAULT_TRANSACTION } from './TransactionEntryPage';
+import TransactionEntryPage from './TransactionEntryPage';
 import CategoryListPage from './CategoryListPage';
-import CategoryDetailsPage, { DEFAULT_CATEGORY } from './CategoryDetailsPage';
+import CategoryDetailsPage from './CategoryDetailsPage';
 import IconSelectPage from './IconSelectPage';
 import ColorSelectPage from './ColorSelectPage';
 import Modal from 'react-bootstrap/Modal';
@@ -9,6 +9,7 @@ import MyConfirmBox from "./MyConfirmBox";
 import { useModalConfirm } from '../hooks/useModalConfirm';
 import { deleteTransactionById } from '../services/transactionService';
 import { deleteCategoryById } from '../services/categoryService';
+import { DEFAULT_TRANSACTION, DEFAULT_CATEGORY } from '../constants/defaults';
 
 const ROOT_PAGE = 'transaction';
 

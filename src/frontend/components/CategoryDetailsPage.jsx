@@ -5,14 +5,7 @@ import { iconRegistry, iconsFromDb } from "../iconRegistry";
 import IconElement from "./IconElement";
 import IconSelect from './IconSelect';
 import ColorSelect from "./ColorSelect";
-
-export const DEFAULT_CATEGORY = {
-  id: null,
-  name: '',
-  description: '',
-  color: '',
-  icon: ''
-};
+import { DEFAULT_CATEGORY } from '../constants/defaults';   // <-- shared import
 
 const CategoryDetailsPage = ({
   propCategory,

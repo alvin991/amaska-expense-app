@@ -1,22 +1,5 @@
 import { Form } from "react-bootstrap";
-
-const DEFAULT_COLORS = [
-  "#2196f3", // blue
-  "#4caf50", // green
-  "#ff9800", // orange
-  "#f44336", // red
-  "#9c27b0", // purple
-  "#795548", // brown
-  "#607d8b", // blue-grey
-  "#00bcd4", // cyan
-  "#e91e63", // pink
-  "#8bc34a", // light green
-  "#ffc107", // amber
-  "#3f51b5", // indigo
-  "#9e9e9e", // grey
-  "#ff5722", // deep orange
-  "#673ab7", // deep purple
-];
+import { DEFAULT_COLORS } from '../constants/defaults';   // <-- shared import
 
 function ColorSelect({ label = "Color", value, onChange, colors = DEFAULT_COLORS }) {
   const handleColorClick = (hex) => {

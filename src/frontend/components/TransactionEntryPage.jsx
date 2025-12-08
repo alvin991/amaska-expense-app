@@ -2,19 +2,6 @@ import { useState, useEffect } from 'react';
 import { Form, Container, Button, InputGroup } from 'react-bootstrap';
 import { saveTransaction } from '../services/transactionService';
 
-export const DEFAULT_TRANSACTION = {
-  transaction_id: null,
-  amount: 0.0,
-  merchant: '',
-  category: '',
-  date: new Date().toISOString().split('T')[0],
-  notes: '',
-  category_id: '',
-  category_name: '',
-  payment_method_id: '',
-  payment_method_name: ''
-};
-
 function TransactionEntryPage({
   transaction = {},          // draft
   paymentMethods = [],
