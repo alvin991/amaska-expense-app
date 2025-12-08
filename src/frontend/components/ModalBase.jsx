@@ -128,6 +128,7 @@ const ModalBase = ({
     setTransactionDraft(DEFAULT_TRANSACTION);
     setTransactionOriginal(DEFAULT_TRANSACTION);
     setIsDirty(false);
+    setNavStack([{ page: ROOT_PAGE, params: null }]);
     onHide();
   };
 
