@@ -102,7 +102,7 @@ app.post('/api/categories', (req, res) => {
             function(err) {
                 if (err) {
                     console.error('Error creating category:', err.message);
-                    res.status(500).json({ error: 'Failed to create category' });
+                    res.status(500).json({ error: err.message || 'Failed to create category' });
                 } else {
                     res.status(201).json({ 
                         message: 'Category created successfully',

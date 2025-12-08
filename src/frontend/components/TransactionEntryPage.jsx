@@ -1,19 +1,19 @@
 import { useState, useEffect } from 'react';
 import { Form, Container, Button, InputGroup } from 'react-bootstrap';
 import { saveTransaction } from '../services/transactionService';
+import { validateTransactionForm } from '../utils/formValidation';
 
 function TransactionEntryPage({
-  transaction = {},          // draft
+  transaction = {},
   paymentMethods = [],
   categories = [],
   navigation,
   refreshTransactions,
   onHide,
-  onChangeDraft,             // updater from ModalBase
-  isDirty,                   // computed in ModalBase
-  onDelete,                  // comes from ModalBase/useModalConfirm
+  onChangeDraft,
+  isDirty,
+  onDelete,
 }) {
-  // local UI state
   const [formData, setFormData] = useState({
     amount: '',
     merchant: '',
@@ -24,6 +24,7 @@ function TransactionEntryPage({
   });
 
   const [isAmountFocused, setIsAmountFocused] = useState(false);
+  const [errors, setErrors] = useState({});   // NEW
 
   useEffect(() => {
     setFormData({
@@ -37,6 +38,7 @@ function TransactionEntryPage({
         new Date().toISOString().split('T')[0],
       notes: transaction.notes ?? '',
     });
+    setErrors({});
   }, [transaction]);
 
   const handleChange = (e) => {
@@ -72,6 +74,7 @@ function TransactionEntryPage({
     if (Number.isNaN(num)) {
       setFormData(prev => ({ ...prev, amount: '' }));
       onChangeDraft?.(prev => ({ ...prev, amount: '' }));
+      setErrors(prev => ({ ...prev, amount: 'Amount must be numeric.' }));
       return;
     }
     const formatted = num.toFixed(2);
@@ -97,8 +100,23 @@ function TransactionEntryPage({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const newErrors = validateTransactionForm(formData);
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) return;
+
     try {
-      await saveTransaction(transaction);
+      const tx = {
+        ...transaction,
+        amount: formData.amount,
+        notes: formData.notes,
+        transaction_date: formData.date,
+        merchant: formData.merchant,
+        category_id: formData.category,
+        payment_method_id: formData.paymentMethod,
+      };
+
+      await saveTransaction(tx);
       await refreshTransactions();
       onHide();
     } catch (error) {
@@ -109,6 +127,7 @@ function TransactionEntryPage({
   return (
     <Container className="mt-3">
       <Form onSubmit={handleSubmit}>
+        {/* Amount */}
         <Form.Group className="mb-3">
           <Form.Label>Amount</Form.Label>
           <InputGroup>
@@ -126,10 +145,15 @@ function TransactionEntryPage({
               onBlur={handleAmountBlur}
               placeholder="0.00"
               style={{ textAlign: 'left' }}
+              isInvalid={!!errors.amount}
             />
+            <Form.Control.Feedback type="invalid">
+              {errors.amount}
+            </Form.Control.Feedback>
           </InputGroup>
         </Form.Group>
 
+        {/* Merchant */}
         <Form.Group className="mb-3">
           <Form.Label>Merchant</Form.Label>
           <Form.Control
@@ -138,15 +162,21 @@ function TransactionEntryPage({
             value={formData.merchant}
             onChange={handleChange}
             placeholder="Enter merchant name"
+            isInvalid={!!errors.merchant}
           />
+          <Form.Control.Feedback type="invalid">
+            {errors.merchant}
+          </Form.Control.Feedback>
         </Form.Group>
 
+        {/* Payment Method */}
         <Form.Group className="mb-3">
           <Form.Label>Payment Method</Form.Label>
           <Form.Select
             name="paymentMethod"
             value={formData.paymentMethod}
             onChange={handlePaymentMethodChange}
+            isInvalid={!!errors.paymentMethod}
           >
             <option value="">Select payment method</option>
             {paymentMethods.map((method) => (
@@ -155,8 +185,12 @@ function TransactionEntryPage({
               </option>
             ))}
           </Form.Select>
+          <Form.Control.Feedback type="invalid">
+            {errors.paymentMethod}
+          </Form.Control.Feedback>
         </Form.Group>
 
+        {/* Category */}
         <Form.Group className="mb-3">
           <Form.Label>Category</Form.Label>
           <Form.Select
@@ -164,6 +198,7 @@ function TransactionEntryPage({
             value={formData.category}
             onMouseDown={handleSelectClick}
             onChange={(e) => e.preventDefault()}
+            isInvalid={!!errors.category}
           >
             {formData.category === '' && <option value="">Select Category</option>}
             {categories.map((category) => (
@@ -172,8 +207,12 @@ function TransactionEntryPage({
               </option>
             ))}
           </Form.Select>
+          <Form.Control.Feedback type="invalid">
+            {errors.category}
+          </Form.Control.Feedback>
         </Form.Group>
 
+        {/* Date */}
         <Form.Group className="mb-3">
           <Form.Label>Date</Form.Label>
           <Form.Control
@@ -181,9 +220,14 @@ function TransactionEntryPage({
             name="transaction_date"
             value={formData.date}
             onChange={handleChange}
+            isInvalid={!!errors.date}
           />
+          <Form.Control.Feedback type="invalid">
+            {errors.date}
+          </Form.Control.Feedback>
         </Form.Group>
 
+        {/* Notes */}
         <Form.Group className="mb-3">
           <Form.Label>Notes</Form.Label>
           <Form.Control
@@ -211,7 +255,7 @@ function TransactionEntryPage({
             variant="danger"
             type="button"
             style={{ display: transaction.transaction_id ? 'block' : 'none' }}
-            onClick={onDelete}   // delegates to ModalBase/useModalConfirm
+            onClick={onDelete}
           >
             Delete
           </Button>

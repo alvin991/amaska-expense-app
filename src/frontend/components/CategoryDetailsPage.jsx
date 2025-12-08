@@ -1,18 +1,19 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Form, Button, Container } from 'react-bootstrap';
-import { saveCategory } from '../services/categoryService';
+import { Form, Button, Container, Alert } from 'react-bootstrap';
 import { iconRegistry, iconsFromDb } from "../iconRegistry";
 import IconElement from "./IconElement";
 import IconSelect from './IconSelect';
 import ColorSelect from "./ColorSelect";
-import { DEFAULT_CATEGORY } from '../constants/defaults';   // <-- shared import
+import { DEFAULT_CATEGORY } from '../constants/defaults';
+import { saveCategory } from '../services/categoryService';
+import { validateCategoryForm } from '../utils/formValidation';
 
 const CategoryDetailsPage = ({
   propCategory,
   refreshCategories,
-  navigation,      // from ModalBase
-  onDirtyChange,   // from ModalBase
-  onDelete,        // NEW: from ModalBase/useModalConfirm
+  navigation,
+  onDirtyChange,
+  onDelete,
 }) => {
   const category =
     propCategory && Object.keys(propCategory).length > 0
@@ -23,7 +24,7 @@ const CategoryDetailsPage = ({
     () => ({
       name: category.name || '',
       notes: category.description || '',
-      color: category.color || '#2196f3',
+      color: category.color || '',
       icon: category.icon || ''
     }),
     [category]
@@ -32,6 +33,8 @@ const CategoryDetailsPage = ({
   const [formData, setFormData] = useState(originalForm);
   const [showIconPicker, setShowIconPicker] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [submitError, setSubmitError] = useState('');   // NEW
 
   const isDirty =
     formData.name !== originalForm.name ||
@@ -43,13 +46,20 @@ const CategoryDetailsPage = ({
     onDirtyChange?.(isDirty);
   }, [isDirty, onDirtyChange]);
 
+  // whenever originalForm changes, clear errors
+  useEffect(() => {
+    setFormData(originalForm);
+    setErrors({});
+    setSubmitError('');
+  }, [originalForm]);
+
   const iconKey = formData.icon || category.icon;
   const IconComponent = iconKey ? iconRegistry[iconKey] : null;
   const iconInfo =
     iconsFromDb.find(ic => ic.id === iconKey) ||
     { label: 'Select an icon', color: '#000' };
   const iconSize = 24;
-  const selectedColor = formData.color || '#2196f3';
+  const selectedColor = formData.color || '';
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -77,6 +87,12 @@ const CategoryDetailsPage = ({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const newErrors = validateCategoryForm(formData);
+    setErrors(newErrors);
+    setSubmitError('');
+    if (Object.keys(newErrors).length > 0) return;
+
     try {
       const cat = {
         id: category.id,
@@ -91,12 +107,34 @@ const CategoryDetailsPage = ({
       navigation.back();
     } catch (error) {
       console.error('Error saving category:', error);
+
+      // Try to detect UNIQUE name violation from backend response
+      const msg = error?.response?.data?.error || error?.message || '';
+
+      if (msg.includes('UNIQUE constraint failed: expense_categories.name')
+          || msg.toLowerCase().includes('unique')
+      ) {
+        // attach error to name field and global submitError
+        setErrors(prev => ({
+          ...prev,
+          name: 'A category with this name already exists.',
+        }));
+        setSubmitError('Category name must be unique.');
+      } else {
+        setSubmitError('Failed to save category. Please try again.');
+      }
     }
   };
 
   return (
     <Container>
-      <Form onSubmit={handleSubmit}>
+      <Form onSubmit={handleSubmit} noValidate>
+        {submitError && (
+          <Alert variant="danger" className="mb-3">
+            {submitError}
+          </Alert>
+        )}
+
         {/* Name */}
         <Form.Group className="mb-3">
           <Form.Label style={{ fontWeight: 600 }}>
@@ -108,8 +146,11 @@ const CategoryDetailsPage = ({
             value={formData.name}
             onChange={handleChange}
             placeholder="Enter category name"
-            required
+            isInvalid={!!errors.name}
           />
+          <Form.Control.Feedback type="invalid">
+            {errors.name}
+          </Form.Control.Feedback>
         </Form.Group>
 
         {/* Notes */}
@@ -124,7 +165,11 @@ const CategoryDetailsPage = ({
             value={formData.notes}
             onChange={handleChange}
             placeholder="Enter notes"
+            isInvalid={!!errors.notes}
           />
+          <Form.Control.Feedback type="invalid">
+            {errors.notes}
+          </Form.Control.Feedback>
         </Form.Group>
 
         {/* Color picker */}
@@ -159,16 +204,27 @@ const CategoryDetailsPage = ({
                 justifyContent: 'center',
               }}
             >
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: '50%',
-                  backgroundColor: selectedColor,
-                  border: '3px solid #000',
-                  boxShadow: '0 0 0 3px rgba(0,0,0,0.08)',
-                }}
-              />
+              {selectedColor ? (
+                <div
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: '50%',
+                    backgroundColor: selectedColor,
+                    border: '3px solid #000',
+                    boxShadow: '0 0 0 3px rgba(0,0,0,0.08)',
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    padding: '0.5rem 0',
+                    color: '#666',
+                  }}
+                >
+                  Click to select a color
+                </div>
+              )}
             </div>
           )}
 
@@ -178,6 +234,12 @@ const CategoryDetailsPage = ({
               value={selectedColor}
               onChange={handleColorChange}
             />
+          )}
+
+          {errors.color && (
+            <div style={{ color: '#dc3545', marginTop: 4, fontSize: '.875em', textAlign: 'center' }}>
+              {errors.color}
+            </div>
           )}
         </Form.Group>
 
@@ -241,6 +303,12 @@ const CategoryDetailsPage = ({
               selectedIconKey={iconKey}
             />
           )}
+
+          {errors.icon && (
+            <div style={{ color: '#dc3545', marginTop: 4, fontSize: '.875em', textAlign: 'center' }}>
+              {errors.icon}
+            </div>
+          )}
         </Form.Group>
 
         <Button
@@ -257,7 +325,7 @@ const CategoryDetailsPage = ({
             variant="danger"
             className="w-100"
             type="button"
-            onClick={onDelete}   // delegate to ModalBase/useModalConfirm
+            onClick={onDelete}
           >
             Delete
           </Button>
