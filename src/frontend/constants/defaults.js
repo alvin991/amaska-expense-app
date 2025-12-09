@@ -1,10 +1,14 @@
+////jsx
+// filepath: c:\alvin\code\react\amaska-expense-app\src\frontend\constants\defaults.js
+import { formatLocalDate } from '../utils/dateUtils';
+
 // Transaction
 export const DEFAULT_TRANSACTION = {
   transaction_id: null,
   amount: 0.0,
   merchant: '',
   category: '',
-  date: new Date().toISOString().split('T')[0],
+  date: formatLocalDate(new Date()),   // local yyyy-mm-dd
   notes: '',
   category_id: '',
   category_name: '',

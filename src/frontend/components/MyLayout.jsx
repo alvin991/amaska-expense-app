@@ -6,6 +6,7 @@ import ModalBase from './ModalBase.jsx';
 import MySearchBox from './MySearchBox';
 import DashboardHeader from './dashboard/DashboardHeader';
 import DashboardCharts from './dashboard/DashboardCharts';
+import { formatLocalDate } from '../utils/dateUtils';   // NEW
 
 function MyLayout() {
     const [users, setUsers] = useState([]);
@@ -81,15 +82,15 @@ function MyLayout() {
     const fetchTransactions = async () => {
         try {
             const queryParams = {
-                start_date: firstDayOfMonth.toISOString().split('T')[0],
-                end_date:   lastDayOfMonth.toISOString().split('T')[0],
+                start_date: formatLocalDate(firstDayOfMonth),
+                end_date:   formatLocalDate(lastDayOfMonth),
             };
             const response = await axios.get('/api/transactions', { params: queryParams });
 
             const formattedTransactions = response.data.map(tx => ({
                 ...tx,
                 transaction_date: tx.transaction_date
-                    ? new Date(tx.transaction_date).toISOString().split('T')[0]
+                    ? formatLocalDate(new Date(tx.transaction_date))
                     : ''
             }));
 
