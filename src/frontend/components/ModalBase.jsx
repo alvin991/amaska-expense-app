@@ -212,7 +212,7 @@ const ModalBase = ({
   };
 
   const handleRequestBack = () => {
-    if (isDirty) {
+    if (isDirty && currentPage !== 'categoryList') {
       confirm.openDiscardBack();
     } else {
       navigation.back();
