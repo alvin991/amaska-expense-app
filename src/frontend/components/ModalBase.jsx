@@ -27,7 +27,7 @@ const ModalBase = ({
   const effectiveTransaction = propTransaction ?? DEFAULT_TRANSACTION;
   const [transactionOriginal, setTransactionOriginal] = useState(effectiveTransaction);
   const [transactionDraft, setTransactionDraft] = useState(effectiveTransaction);
-
+  const [propCategory, setPropCategory] = useState(DEFAULT_CATEGORY);
   const [isDirty, setIsDirty] = useState(false);
   const [navStack, setNavStack] = useState([{ page: ROOT_PAGE, params: null }]);
   

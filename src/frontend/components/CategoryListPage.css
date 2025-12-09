@@ -21,20 +21,38 @@
 .scrollable-list {
   border: 1px solid #ddd;
   border-radius: 8px;
-  height: 300px;
+  max-height: 280px;
   overflow-y: auto;
   background-color: #fff; /* Changed to white */
 }
 
 .list-item {
-  padding: 12px 15px;
-  border-bottom: 1px solid #e0e0e0;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  background-color: #f9f9f9;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+/* leftmost tick, reserve space even when empty */
+.list-item-tick {
+  width: 26px;          /* can bump to 24 if needed */
+  margin-right: 6px;
+  text-align: center;
+  color: #198754;
+  font-weight: 700;
+  font-size: 20px;
+}
+
+/* icon next to tick */
+.list-item-icon {
+  display: flex;
+  align-items: center;
+  margin-right: 8px;
+}
+
+/* label fills the rest */
+.list-item-label {
+  flex: 1;
 }
 
 .list-item:last-child {

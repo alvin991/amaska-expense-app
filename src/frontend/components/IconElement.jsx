@@ -12,7 +12,6 @@ function IconElement({ iconKey, label, size, color, isSelected = false, showLabe
                 display: "flex",              // was: "inline-flex"
                 flexDirection: "column",
                 alignItems: "center",
-                padding: 8,
                 border: isSelected ? "3px solid #1976d2" : "3px solid transparent",
                 borderRadius: 12,
                 boxSizing: "border-box",

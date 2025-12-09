@@ -2,6 +2,15 @@ import { useRef } from 'react';
 import { Button } from 'react-bootstrap';
 import './CategoryListPage.css';
 import { DEFAULT_CATEGORY } from '../constants/defaults';   // <-- shared import
+import {
+  iconsFromDb,
+  categoryToIconKey,
+  getColorForIconKey,
+} from '../iconRegistry';
+import IconElement from "./IconElement";
+
+const iconSize = 18;
+const circleSize = iconSize + 12; // similar padding to IconElement
 
 const CategoryListPage = ({
   categories,
@@ -20,7 +29,6 @@ const CategoryListPage = ({
 
     clickTimer.current = setTimeout(() => {
       if (clickTimer.current) {
-        // console.log(`Category ${categoryId} clicked`);
         onCategorySelected?.(categoryId);
         navigation.back();
         clickTimer.current = null;
@@ -43,54 +51,78 @@ const CategoryListPage = ({
 
   return (
     <div className="category-list-page">
-      {/* <h2>Category List Page</h2>
-
-      {navigation.canGoBack && (
-        <Button
-          variant="secondary"
-          className="mb-3"
-          onClick={navigation.back}
-        >
-          Back
-        </Button>
-      )} */}
-
       <div className="lists-container">
         <div className="list-section">
           <h3>Used Categories</h3>
           <div className="scrollable-list">
-            {usedCategories.map((category) => (
-              <div
-                key={category.id}
-                className="list-item"
-                onClick={() => handleCategoryClick(category.id)}
-                onDoubleClick={() => handleCategoryDoubleClick(category.id)}
-              >
-                <span>{category.name}</span>
-                {transaction?.category_id === category.id && (
-                  <span className="tick-icon">✓</span>
-                )}
-              </div>
-            ))}
+            {usedCategories.map((category) => {
+              const iconKey = categoryToIconKey(category.name);
+              const iconInfo = iconsFromDb.find(ic => ic.id === iconKey);
+              const bgColor = getColorForIconKey(iconKey);
+
+              return (
+                <div
+                  key={category.id}
+                  className="list-item"
+                  onClick={() => handleCategoryClick(category.id)}
+                  onDoubleClick={() => handleCategoryDoubleClick(category.id)}
+                >
+                  {transaction?.category_id === category.id ? (
+                    <span className="list-item-tick">✓</span>
+                  ) : (
+                    <span className="list-item-tick" aria-hidden="true"></span>
+                  )}
+
+                  <div className="list-item-icon">
+                    <IconElement
+                      key={iconKey}
+                      iconKey={iconKey}
+                      label={iconInfo.label}
+                      size={iconSize}
+                      color={bgColor}
+                      showLabel={false}
+                    />
+                  </div>
+
+                  <span className="list-item-label">{category.name}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
 
         <div className="list-section">
           <h3>Other Categories</h3>
           <div className="scrollable-list">
-            {otherCategories.map((category) => (
-              <div
-                key={category.id}
-                className="list-item"
-                onClick={() => handleCategoryClick(category.id)}
-                onDoubleClick={() => handleCategoryDoubleClick(category.id)}
-              >
-                <span>{category.name}</span>
-                {transaction?.category_id === category.id && (
-                  <span className="tick-icon">✓</span>
-                )}
-              </div>
-            ))}
+            {otherCategories.map((category) => {
+              const iconKey = categoryToIconKey(category.name);
+              const iconInfo = iconsFromDb.find(ic => ic.id === iconKey);
+              const bgColor = getColorForIconKey(iconKey);
+
+              return (
+                <div
+                  key={category.id}
+                  className="list-item"
+                  onClick={() => handleCategoryClick(category.id)}
+                  onDoubleClick={() => handleCategoryDoubleClick(category.id)}
+                >
+                  <span className="list-item-tick" aria-hidden="true"></span>
+
+                  <div className="list-item-icon">
+                    <IconElement
+                      key={iconKey}
+                      iconKey={iconKey}
+                      label={iconInfo.label}
+                      size={iconSize}
+                      color={bgColor}
+                      showLabel={false}
+                    />
+                  </div>
+
+                  <span className="list-item-label">{category.name}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
