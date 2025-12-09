@@ -1,0 +1,42 @@
+.category-input-icon {
+  padding-inline: 4px;   /* tight left/right padding */
+  width: auto;           /* no fixed / large width */
+  flex: 0 0 auto;        /* don’t grow */
+  background-color: white;
+}
+
+.category-input-icon.input-group-text {
+  padding-inline: 4px;
+  width: auto;
+  flex: 0 0 auto;
+  background-color: #ffffff;
+  border-right: 0;              /* no border between icon and text */
+}
+
+/* middle textbox */
+.category-input-control.form-control {
+  border-left: 0;               /* remove left seam (icon)  */
+  border-right: 0;              /* remove right seam (caret) */
+  background-color: #ffffff;
+}
+
+/* right caret cell */
+.category-input-caret.input-group-text {
+  padding-inline: 8px;
+  width: auto;
+  flex: 0 0 auto;
+  font-size: 1.1rem;
+  color: #6c757d;
+  background-color: #ffffff;
+  border-left: 0;               /* no border between text and caret */
+}
+
+/* additional styles */
+.amount-input {
+  text-align: left;
+}
+
+/* shared “looks clickable” */
+.category-clickable {
+  cursor: pointer;
+}

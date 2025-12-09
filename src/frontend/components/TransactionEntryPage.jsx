@@ -2,6 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { Form, Container, Button, InputGroup } from 'react-bootstrap';
 import { saveTransaction } from '../services/transactionService';
 import { validateTransactionForm } from '../utils/formValidation';
+import IconElement from './IconElement';
+import { iconRegistry, iconsFromDb } from '../iconRegistry';
+import './TransactionEntryPage.css';
 
 function TransactionEntryPage({
   transaction = {},
@@ -23,7 +26,6 @@ function TransactionEntryPage({
     notes: ''
   });
 
-  const [isAmountFocused, setIsAmountFocused] = useState(false);
   const [errors, setErrors] = useState({});
   const amountInputRef = useRef(null);
 
@@ -85,7 +87,6 @@ function TransactionEntryPage({
   };
 
   const handleAmountFocus = (e) => {
-    setIsAmountFocused(true);
     // highlight entire value
     requestAnimationFrame(() => {
       const el = amountInputRef.current;
@@ -95,7 +96,6 @@ function TransactionEntryPage({
   };
 
   const handleAmountBlur = () => {
-    setIsAmountFocused(false);
     const v = formData.amount;
     if (v === '' || v === null) return;
 
@@ -127,6 +127,9 @@ function TransactionEntryPage({
       },
     });
   };
+
+  const getSelectedCategory = () =>
+    categories.find(c => c.id === formData.category) || null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -171,7 +174,7 @@ function TransactionEntryPage({
               onFocus={handleAmountFocus}
               onBlur={handleAmountBlur}
               placeholder="0.00"
-              style={{ textAlign: 'left' }}
+              className="amount-input"
               isInvalid={!!errors.amount}
             />
             <Form.Control.Feedback type="invalid">
@@ -217,26 +220,61 @@ function TransactionEntryPage({
           </Form.Control.Feedback>
         </Form.Group>
 
-        {/* Category */}
+        {/* Category (fake dropdown textbox with icon) */}
         <Form.Group className="mb-3">
           <Form.Label>Category</Form.Label>
-          <Form.Select
-            name="category"
-            value={formData.category}
-            onMouseDown={handleSelectClick}
-            onChange={(e) => e.preventDefault()}
-            isInvalid={!!errors.category}
-          >
-            {formData.category === '' && <option value="">Select Category</option>}
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </Form.Select>
-          <Form.Control.Feedback type="invalid">
-            {errors.category}
-          </Form.Control.Feedback>
+          <InputGroup>
+            {/* left icon inside the input group */}
+            {(() => {
+              const selected = getSelectedCategory();
+              const iconKey = selected?.icon;
+              const iconInfo =
+                iconsFromDb?.find(ic => ic.id === iconKey) ||
+                (selected ? { label: selected.name } : null);
+              const IconComponent = iconKey ? iconRegistry?.[iconKey] : null;
+
+              return IconComponent ? (
+                <InputGroup.Text
+                  className="category-input-icon category-clickable"
+                  onClick={handleSelectClick}
+                >
+                  <IconElement
+                    iconKey={iconKey}
+                    label={iconInfo.label}
+                    size={16}
+                    color={selected?.color || '#2196f3'}
+                    showLabel={false}
+                  />
+                </InputGroup.Text>
+              ) : (
+                <InputGroup.Text className="category-input-icon" />
+              );
+            })()}
+
+            <Form.Control
+              type="text"
+              readOnly
+              className="category-input-control category-clickable"
+              value={getSelectedCategory()?.name || ''}
+              placeholder="Select Category"
+              onClick={handleSelectClick}
+              isInvalid={!!errors.category}
+            />
+
+            {/* right caret, also clickable */}
+            <InputGroup.Text
+              className="category-input-caret category-clickable"
+              onClick={handleSelectClick}
+            >
+              ▾
+            </InputGroup.Text>
+          </InputGroup>
+
+          {errors.category && (
+            <div style={{ color: '#dc3545', marginTop: 4, fontSize: '.875em' }}>
+              {errors.category}
+            </div>
+          )}
         </Form.Group>
 
         {/* Date */}

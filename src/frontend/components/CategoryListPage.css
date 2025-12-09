@@ -111,3 +111,13 @@
   font-weight: bold;
   font-size: 18px;
 }
+
+.category-input-caret.input-group-text {
+  padding-inline: 10px;
+  width: auto;
+  flex: 0 0 auto;
+  font-size: 1.1rem;      /* bigger caret: try 1.2–1.4rem if you want more */
+  color: #6c757d;
+  background-color: #ffffff;
+  border-left: 0;
+}
