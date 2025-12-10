@@ -86,13 +86,7 @@ function MyLayout() {
                 end_date:   formatLocalDate(lastDayOfMonth),
             };
             const response = await axios.get('/api/transactions', { params: queryParams });
-
-            const formattedTransactions = response.data.map(tx => ({
-                ...tx,
-                transaction_date: tx.transaction_date
-                    ? formatLocalDate(new Date(tx.transaction_date))
-                    : ''
-            }));
+            const formattedTransactions = JSON.parse(JSON.stringify(response.data));
 
             setTransactions(formattedTransactions);
             setCategoriesUsed(new Set(formattedTransactions.map(tx => tx.category_id)));
