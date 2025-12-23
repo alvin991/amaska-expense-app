@@ -4,6 +4,8 @@ const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
+const cron = require('node-cron');
+const recurringCron = process.env.RECURRING_CRON || '0 2 * * *';
 
 // Database file path: can be overridden via DB_PATH in .env or environment
 const dbPath = process.env.DB_PATH
@@ -67,6 +69,21 @@ const app = express();
         });
     });
 })();
+
+// after applyRecurringExpenses is defined:
+cron.schedule(recurringCron, () => {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const target = `${yyyy}-${mm}-${dd}`;
+    
+    console.log('[cron] Applying recurring expenses up to', target);
+    applyRecurringExpenses(target, (err) => {
+        if (err) console.error('[cron] Failed:', err.message);
+        else console.log('[cron] Done');
+    });
+});
 
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production'
@@ -396,6 +413,7 @@ app.get('/api/recurring_expenses', (req, res) => {
 app.post('/api/recurring_expenses', (req, res) => {
     const {
         user_id = 1,
+        name,
         project_amount,
         notes,
         merchant,
@@ -415,8 +433,8 @@ app.post('/api/recurring_expenses', (req, res) => {
 
         const sql = `
             INSERT INTO recurring_expenses
-            (user_id, project_amount, notes, merchant, project_category_id, project_payment_method_id, frequency, interval, start_date, end_date, next_run_date)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (user_id, name, project_amount, notes, merchant, project_category_id, project_payment_method_id, frequency, interval, start_date, end_date, next_run_date)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
 
         const nextRun = start_date;
@@ -425,6 +443,7 @@ app.post('/api/recurring_expenses', (req, res) => {
             sql,
             [
                 user_id,
+                name,
                 project_amount,
                 notes,
                 merchant,
@@ -453,6 +472,7 @@ app.put('/api/recurring_expenses/:id', (req, res) => {
     const { id } = req.params;
     const {
         user_id = 1,
+        name,
         project_amount,
         notes,
         merchant,
@@ -473,7 +493,7 @@ app.put('/api/recurring_expenses/:id', (req, res) => {
 
         const sql = `
             UPDATE recurring_expenses
-            SET user_id = ?, project_amount = ?, notes = ?, merchant = ?, project_category_id = ?, project_payment_method_id = ?,
+            SET user_id = ?, name = ?, project_amount = ?, notes = ?, merchant = ?, project_category_id = ?, project_payment_method_id = ?,
                 frequency = ?, interval = ?, start_date = ?, end_date = ?, next_run_date = ?
             WHERE id = ?
         `;
@@ -482,6 +502,7 @@ app.put('/api/recurring_expenses/:id', (req, res) => {
             sql,
             [
                 user_id,
+                name,
                 project_amount,
                 notes,
                 merchant,

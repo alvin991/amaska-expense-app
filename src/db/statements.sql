@@ -65,6 +65,8 @@ CREATE TABLE IF NOT EXISTS expense_transactions (
 -- Recurring expenses: template of future transactions
 CREATE TABLE IF NOT EXISTS recurring_expenses (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name VARCHAR(100) NOT NULL,
+    enabled BOOLEAN NOT NULL DEFAULT 1,
     user_id INTEGER NOT NULL,
     project_amount DECIMAL(10, 2) NOT NULL,
     notes VARCHAR(255),
