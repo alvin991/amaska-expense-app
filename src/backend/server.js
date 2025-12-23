@@ -15,60 +15,31 @@ const sqlPath = path.join(__dirname, './../db/statements.sql');
 
 // If database does not exist, create and initialize it
 if (!fs.existsSync(dbPath)) {
-  const db = new sqlite3.Database(dbPath);
+    const initDb = new sqlite3.Database(dbPath);
   const initSql = fs.readFileSync(sqlPath, 'utf8');
-  db.exec(initSql, (err) => {
+    initDb.exec(initSql, (err) => {
     if (err) {
       console.error('Error initializing database:', err);
     } else {
       console.log('Database initialized successfully.');
     }
-    db.close();
+        initDb.close();
   });
 }
 
-const app = express();
-
-// Ensure recurring-related tables/columns exist for older databases
-(() => {
-    const db = new sqlite3.Database(dbPath);
-    const createSql = `
-        CREATE TABLE IF NOT EXISTS recurring_expenses (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            project_amount DECIMAL(10, 2) NOT NULL,
-            notes VARCHAR(255),
-            merchant VARCHAR(100) NOT NULL,
-            project_category_id INTEGER NOT NULL,
-            project_payment_method_id INTEGER NOT NULL,
-            frequency VARCHAR(20) NOT NULL,
-            interval INTEGER NOT NULL DEFAULT 1,
-            start_date DATE NOT NULL,
-            end_date DATE,
-            next_run_date DATE NOT NULL,
-            FOREIGN KEY (user_id) REFERENCES users(id),
-            FOREIGN KEY (project_category_id) REFERENCES expense_categories(id),
-            FOREIGN KEY (project_payment_method_id) REFERENCES payment_methods(id)
-        );
-    `;
-
-    db.exec(createSql, (err) => {
+// Shared SQLite connection for the whole process
+const db = new sqlite3.Database(dbPath, (err) => {
         if (err) {
-                console.error('Error ensuring recurring_expenses table exists:', err);
+                console.error('Error opening shared database connection:', err.message);
+        } else {
+                console.log('Shared database connection opened.');
         }
+});
 
-        // Try to add recurring_expense_id column to expense_transactions for older schemas.
-        // If the table doesn't exist or the column already exists, ignore the error.
-        const alterSql = 'ALTER TABLE expense_transactions ADD COLUMN recurring_expense_id INTEGER';
-        db.run(alterSql, (alterErr) => {
-            const msg = String(alterErr && alterErr.message || '');
-            if (alterErr && !msg.includes('duplicate column name') && !msg.includes('no such table')) {
-                console.error('Error adding recurring_expense_id column:', alterErr.message);
-            }
-            db.close();
-        });
-    });
-})();
+// Ensure foreign keys (including ON DELETE SET NULL) are enforced
+db.run('PRAGMA foreign_keys = ON');
+
+const app = express();
 
 // after applyRecurringExpenses is defined:
 cron.schedule(recurringCron, () => {
@@ -126,25 +97,16 @@ function addPeriod(dateStr, frequency, interval) {
 
 // Generate recurring transactions up to (and including) a given date
 function applyRecurringExpenses(upToDate, callback) {
-    const db = new sqlite3.Database(dbPath, sqlite3.OPEN_READWRITE, (err) => {
-        if (err) {
-            console.error('Error opening database for recurring expenses:', err.message);
-            callback(err);
-        }
-    });
-
     const targetDate = upToDate;
 
     db.all('SELECT * FROM recurring_expenses', [], (err, rows) => {
         if (err) {
             console.error('Error reading recurring_expenses:', err.message);
-            db.close();
             return callback(err);
         }
 
         const processNext = (index) => {
             if (index >= rows.length) {
-                db.close();
                 return callback(null);
             }
 
@@ -173,8 +135,8 @@ function applyRecurringExpenses(upToDate, callback) {
 
                 const insertSql = `
                     INSERT INTO expense_transactions
-                    (user_id, project_amount, amount, notes, transaction_date, merchant, project_category_id, category_id, project_payment_method_id, payment_method_id, recurring_expense_id)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (user_id, project_amount, amount, notes, transaction_date, merchant, project_category_id, category_id, project_payment_method_id, payment_method_id, recurring_expense_id, created_by)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 `;
 
                 db.run(
@@ -193,6 +155,7 @@ function applyRecurringExpenses(upToDate, callback) {
                         rec.project_payment_method_id,
                         rec.project_payment_method_id,
                         rec.id,
+                        rec.user_id,
                     ],
                     (insertErr) => {
                         if (insertErr) {
@@ -217,125 +180,85 @@ function applyRecurringExpenses(upToDate, callback) {
 }
 
 app.get('/api/users', (req, res) => {
-    const db = new sqlite3.Database(dbPath, sqlite3.OPEN_READONLY, (err) => {
+    db.all('SELECT * FROM users', [], (err, rows) => {
         if (err) {
-            console.error('Error opening database:', err.message);
-            res.status(500).json({ error: 'Failed to connect to the database' });
-            return;
+            console.error('Error executing query:', err.message);
+            res.status(500).json({ error: 'Failed to retrieve data' });
+        } else {
+            res.json(rows);
         }
-
-        db.all('SELECT * FROM users', [], (err, rows) => {
-            if (err) {
-                console.error('Error executing query:', err.message);
-                res.status(500).json({ error: 'Failed to retrieve data' });
-            } else {
-                res.json(rows);
-            }
-            db.close((err) => {
-                if (err) {
-                    console.error('Error closing database:', err.message);
-                }
-            });
-        });
     });
 });
 
 app.get('/api/categories', (req, res) => {
-    const db = new sqlite3.Database(dbPath, sqlite3.OPEN_READONLY, (err) => {
+    db.all('SELECT * FROM expense_categories', [], (err, rows) => {
         if (err) {
-            console.error('Error opening database:', err.message);
-            res.status(500).json({ error: 'Failed to connect to the database' });
-            return;
+            console.error('Error executing query:', err.message);
+            res.status(500).json({ error: 'Failed to retrieve data' });
+        } else {
+            res.json(rows);
         }
-
-        db.all('SELECT * FROM expense_categories', [], (err, rows) => {
-            if (err) {
-                console.error('Error executing query:', err.message);
-                res.status(500).json({ error: 'Failed to retrieve data' });
-            } else {
-                res.json(rows);
-            }
-            db.close((err) => {
-                if (err) {
-                    console.error('Error closing database:', err.message);
-                }
-            });
-        });
     });
 });
 
 // Create new Category
 app.post('/api/categories', (req, res) => {
     console.log(`POST /api/categories called with body: ${JSON.stringify(req.body, null, 2)}`);
-    const { name, description, color, icon } = req.body;
+    const { name, description, color, icon, user_id } = req.body;
     
-    const db = new sqlite3.Database(dbPath, sqlite3.OPEN_READWRITE, (err) => {
-        if (err) {
-            console.error('Error opening database:', err.message);
-            return res.status(500).json({ error: 'Failed to connect to the database' });
-        }
-
-        const sql = `
-            INSERT INTO expense_categories 
-            (name, description, color, icon)
-            VALUES (?, ?, ?, ?)
-        `;
-        
-        db.run(sql, [name, description, color, icon], 
-            function(err) {
-                if (err) {
-                    console.error('Error creating category:', err.message);
-                    res.status(500).json({ error: err.message || 'Failed to create category' });
-                } else {
-                    res.status(201).json({ 
-                        message: 'Category created successfully',
-                        id: this.lastID 
-                    });
-                }
-                db.close();
+    const sql = `
+        INSERT INTO expense_categories 
+        (name, description, color, icon, created_by)
+        VALUES (?, ?, ?, ?, ?)
+    `;
+    
+    db.run(sql, [name, description, color, icon, user_id || null], 
+        function(err) {
+            if (err) {
+                console.error('Error creating category:', err.message);
+                res.status(500).json({ error: err.message || 'Failed to create category' });
+            } else {
+                res.status(201).json({ 
+                    message: 'Category created successfully',
+                    id: this.lastID 
+                });
             }
-        );
-    });
+        }
+    );
 });
 
 // Update existing Category
 app.put('/api/categories/:id', (req, res) => {
     console.log(`PUT /api/categories/${req.params.id} called with body: ${JSON.stringify(req.body, null, 2)}`);
-    const { name, description, color, icon } = req.body;
+    const { name, description, color, icon, user_id } = req.body;
     const categoryId = req.params.id;
     
-    const db = new sqlite3.Database(dbPath, sqlite3.OPEN_READWRITE, (err) => {
-        if (err) {
-            console.error('Error opening database:', err.message);
-            return res.status(500).json({ error: 'Failed to connect to the database' });
-        }
-
-        const sql = `
-            UPDATE expense_categories 
-            SET name = ?,
-                description = ?,
-                color = ?,
-                icon = ?
-            WHERE id = ?
-        `;
-        
-        db.run(sql, [name, description, color, icon, categoryId], 
-            function(err) {
-                if (err) {
-                    console.error('Error updating category:', err.message);
-                    res.status(500).json({ error: 'Failed to update category' });
-                } else if (this.changes === 0) {
-                    res.status(404).json({ error: 'Category not found' });
-                } else {
-                    res.json({ 
-                        message: 'Category updated successfully',
-                        changes: this.changes 
-                    });
-                }
-                db.close();
+    const sql = `
+        UPDATE expense_categories 
+        SET name = ?,
+            description = ?,
+            color = ?,
+            icon = ?,
+            modified_at = CURRENT_TIMESTAMP,
+            modified_by = ?
+        WHERE id = ?
+    `;
+    
+    db.run(sql, [name, description, color, icon, user_id || null, categoryId], 
+        function(err) {
+            if (err) {
+                console.error('Error updating category:', err.message);
+                res.status(500).json({ error: 'Failed to update category' });
+            } else if (this.changes === 0) {
+                res.status(404).json({ error: 'Category not found' });
+            } else {
+                res.json({ 
+                    message: 'Category updated successfully',
+                    changes: this.changes 
+                });
             }
-        );
-    });
+        }
+    );
 });
 
 // Delete existing Category
@@ -343,70 +266,113 @@ app.delete('/api/categories/:id', (req, res) => {
     console.log(`DELETE /api/categories/${req.params.id} called`);
   const categoryId = req.params.id;
   
-  const db = new sqlite3.Database(dbPath, sqlite3.OPEN_READWRITE, (err) => {
-    if (err) {
-      console.error('Error opening database:', err.message);
-      return res.status(500).json({ error: 'Failed to connect to database' });
-    }
-
     const sql = 'DELETE FROM expense_categories WHERE id = ?';
-    
+  
     db.run(sql, [categoryId], function(err) {
-      if (err) {
-        console.error('Error deleting category:', err.message);
-        res.status(500).json({ error: 'Failed to delete category' });
-      } else if (this.changes === 0) {
-        res.status(404).json({ error: 'Category not found' });
-      } else {
-        res.json({ message: 'Category deleted successfully' });
-      }
-      db.close();
+        if (err) {
+            console.error('Error deleting category:', err.message);
+            res.status(500).json({ error: 'Failed to delete category' });
+        } else if (this.changes === 0) {
+            res.status(404).json({ error: 'Category not found' });
+        } else {
+            res.json({ message: 'Category deleted successfully' });
+        }
     });
-  });
 });
 
 app.get('/api/payment_methods', (req, res) => {
-    const db = new sqlite3.Database(dbPath, sqlite3.OPEN_READONLY, (err) => {
+    db.all('SELECT * FROM payment_methods', [], (err, rows) => {
         if (err) {
-            console.error('Error opening database:', err.message);
-            res.status(500).json({ error: 'Failed to connect to the database' });
-            return;
+            console.error('Error executing query:', err.message);
+            res.status(500).json({ error: 'Failed to retrieve data' });
+        } else {
+            res.json(rows);
         }
+    });
+});
 
-        db.all('SELECT * FROM payment_methods', [], (err, rows) => {
-            if (err) {
-                console.error('Error executing query:', err.message);
-                res.status(500).json({ error: 'Failed to retrieve data' });
-            } else {
-                res.json(rows);
-            }
-            db.close((err) => {
-                if (err) {
-                    console.error('Error closing database:', err.message);
-                }
+// Create new payment method
+app.post('/api/payment_methods', (req, res) => {
+    console.log(`POST /api/payment_methods called with body: ${JSON.stringify(req.body, null, 2)}`);
+    const { name, description, user_id } = req.body;
+
+    const sql = `
+        INSERT INTO payment_methods 
+        (name, description, created_by)
+        VALUES (?, ?, ?)
+    `;
+
+    db.run(sql, [name, description, user_id || null], function (err) {
+        if (err) {
+            console.error('Error creating payment method:', err.message);
+            res.status(500).json({ error: err.message || 'Failed to create payment method' });
+        } else {
+            res.status(201).json({
+                message: 'Payment method created successfully',
+                id: this.lastID,
             });
-        });
+        }
+    });
+});
+
+// Update existing payment method
+app.put('/api/payment_methods/:id', (req, res) => {
+    console.log(`PUT /api/payment_methods/${req.params.id} called with body: ${JSON.stringify(req.body, null, 2)}`);
+    const { name, description, user_id } = req.body;
+    const paymentMethodId = req.params.id;
+
+    const sql = `
+        UPDATE payment_methods 
+        SET name = ?,
+            description = ?,
+            modified_at = CURRENT_TIMESTAMP,
+            modified_by = ?
+        WHERE id = ?
+    `;
+
+    db.run(sql, [name, description, user_id || null, paymentMethodId], function (err) {
+        if (err) {
+            console.error('Error updating payment method:', err.message);
+            res.status(500).json({ error: 'Failed to update payment method' });
+        } else if (this.changes === 0) {
+            res.status(404).json({ error: 'Payment method not found' });
+        } else {
+            res.json({
+                message: 'Payment method updated successfully',
+                changes: this.changes,
+            });
+        }
+    });
+});
+
+// Delete existing payment method
+app.delete('/api/payment_methods/:id', (req, res) => {
+    console.log(`DELETE /api/payment_methods/${req.params.id} called`);
+    const paymentMethodId = req.params.id;
+
+    const sql = 'DELETE FROM payment_methods WHERE id = ?';
+
+    db.run(sql, [paymentMethodId], function (err) {
+        if (err) {
+            console.error('Error deleting payment method:', err.message);
+            res.status(500).json({ error: 'Failed to delete payment method' });
+        } else if (this.changes === 0) {
+            res.status(404).json({ error: 'Payment method not found' });
+        } else {
+            res.json({ message: 'Payment method deleted successfully' });
+        }
     });
 });
 
 // Recurring expenses CRUD
 app.get('/api/recurring_expenses', (req, res) => {
-    const db = new sqlite3.Database(dbPath, sqlite3.OPEN_READONLY, (err) => {
-        if (err) {
-            console.error('Error opening database:', err.message);
-            res.status(500).json({ error: 'Failed to connect to the database' });
-            return;
+    db.all('SELECT * FROM recurring_expenses', [], (err2, rows) => {
+        if (err2) {
+            console.error('Error fetching recurring_expenses:', err2.message);
+            res.status(500).json({ error: 'Failed to retrieve recurring expenses' });
+        } else {
+            res.json(rows);
         }
-
-        db.all('SELECT * FROM recurring_expenses', [], (err2, rows) => {
-            if (err2) {
-                console.error('Error fetching recurring_expenses:', err2.message);
-                res.status(500).json({ error: 'Failed to retrieve recurring expenses' });
-            } else {
-                res.json(rows);
-            }
-            db.close();
-        });
     });
 });
 
@@ -425,47 +391,40 @@ app.post('/api/recurring_expenses', (req, res) => {
         end_date,
     } = req.body;
 
-    const db = new sqlite3.Database(dbPath, sqlite3.OPEN_READWRITE, (err) => {
-        if (err) {
-            console.error('Error opening database:', err.message);
-            return res.status(500).json({ error: 'Failed to connect to the database' });
-        }
+    const sql = `
+        INSERT INTO recurring_expenses
+        (user_id, name, project_amount, notes, merchant, project_category_id, project_payment_method_id, frequency, interval, start_date, end_date, next_run_date, created_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
 
-        const sql = `
-            INSERT INTO recurring_expenses
-            (user_id, name, project_amount, notes, merchant, project_category_id, project_payment_method_id, frequency, interval, start_date, end_date, next_run_date)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `;
+    const nextRun = start_date;
 
-        const nextRun = start_date;
-
-        db.run(
-            sql,
-            [
-                user_id,
-                name,
-                project_amount,
-                notes,
-                merchant,
-                project_category_id,
-                project_payment_method_id,
-                frequency,
-                interval,
-                start_date,
-                end_date || null,
-                nextRun,
-            ],
-            function (insertErr) {
-                if (insertErr) {
-                    console.error('Error creating recurring expense:', insertErr.message);
-                    res.status(500).json({ error: 'Failed to create recurring expense' });
-                } else {
-                    res.status(201).json({ message: 'Recurring expense created', id: this.lastID });
-                }
-                db.close();
+    db.run(
+        sql,
+        [
+            user_id,
+            name,
+            project_amount,
+            notes,
+            merchant,
+            project_category_id,
+            project_payment_method_id,
+            frequency,
+            interval,
+            start_date,
+            end_date || null,
+            nextRun,
+            user_id,
+        ],
+        function (insertErr) {
+            if (insertErr) {
+                console.error('Error creating recurring expense:', insertErr.message);
+                res.status(500).json({ error: 'Failed to create recurring expense' });
+            } else {
+                res.status(201).json({ message: 'Recurring expense created', id: this.lastID });
             }
-        );
-    });
+        }
+    );
 });
 
 app.put('/api/recurring_expenses/:id', (req, res) => {
@@ -485,73 +444,57 @@ app.put('/api/recurring_expenses/:id', (req, res) => {
         next_run_date,
     } = req.body;
 
-    const db = new sqlite3.Database(dbPath, sqlite3.OPEN_READWRITE, (err) => {
-        if (err) {
-            console.error('Error opening database:', err.message);
-            return res.status(500).json({ error: 'Failed to connect to the database' });
-        }
+    const sql = `
+        UPDATE recurring_expenses
+        SET user_id = ?, name = ?, project_amount = ?, notes = ?, merchant = ?, project_category_id = ?, project_payment_method_id = ?,
+            frequency = ?, interval = ?, start_date = ?, end_date = ?, next_run_date = ?, modified_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+    `;
 
-        const sql = `
-            UPDATE recurring_expenses
-            SET user_id = ?, name = ?, project_amount = ?, notes = ?, merchant = ?, project_category_id = ?, project_payment_method_id = ?,
-                frequency = ?, interval = ?, start_date = ?, end_date = ?, next_run_date = ?
-            WHERE id = ?
-        `;
-
-        db.run(
-            sql,
-            [
-                user_id,
-                name,
-                project_amount,
-                notes,
-                merchant,
-                project_category_id,
-                project_payment_method_id,
-                frequency,
-                interval,
-                start_date,
-                end_date || null,
-                next_run_date || start_date,
-                id,
-            ],
-            function (updateErr) {
-                if (updateErr) {
-                    console.error('Error updating recurring expense:', updateErr.message);
-                    res.status(500).json({ error: 'Failed to update recurring expense' });
-                } else if (this.changes === 0) {
-                    res.status(404).json({ error: 'Recurring expense not found' });
-                } else {
-                    res.json({ message: 'Recurring expense updated', changes: this.changes });
-                }
-                db.close();
+    db.run(
+        sql,
+        [
+            user_id,
+            name,
+            project_amount,
+            notes,
+            merchant,
+            project_category_id,
+            project_payment_method_id,
+            frequency,
+            interval,
+            start_date,
+            end_date || null,
+            next_run_date || start_date,
+            id,
+        ],
+        function (updateErr) {
+            if (updateErr) {
+                console.error('Error updating recurring expense:', updateErr.message);
+                res.status(500).json({ error: 'Failed to update recurring expense' });
+            } else if (this.changes === 0) {
+                res.status(404).json({ error: 'Recurring expense not found' });
+            } else {
+                res.json({ message: 'Recurring expense updated', changes: this.changes });
             }
-        );
-    });
+        }
+    );
 });
 
 app.delete('/api/recurring_expenses/:id', (req, res) => {
     const { id } = req.params;
 
-    const db = new sqlite3.Database(dbPath, sqlite3.OPEN_READWRITE, (err) => {
-        if (err) {
-            console.error('Error opening database:', err.message);
-            return res.status(500).json({ error: 'Failed to connect to database' });
+    const sql = 'DELETE FROM recurring_expenses WHERE id = ?';
+
+    db.run(sql, [id], function (deleteErr) {
+        if (deleteErr) {
+            console.error('Error deleting recurring expense:', deleteErr.message);
+            res.status(500).json({ error: 'Failed to delete recurring expense' });
+        } else if (this.changes === 0) {
+            res.status(404).json({ error: 'Recurring expense not found' });
+        } else {
+            res.json({ message: 'Recurring expense deleted' });
         }
-
-        const sql = 'DELETE FROM recurring_expenses WHERE id = ?';
-
-        db.run(sql, [id], function (deleteErr) {
-            if (deleteErr) {
-                console.error('Error deleting recurring expense:', deleteErr.message);
-                res.status(500).json({ error: 'Failed to delete recurring expense' });
-            } else if (this.changes === 0) {
-                res.status(404).json({ error: 'Recurring expense not found' });
-            } else {
-                res.json({ message: 'Recurring expense deleted' });
-            }
-            db.close();
-        });
     });
 });
 
@@ -573,82 +516,67 @@ app.post('/api/recurring_expenses/apply', (req, res) => {
 });
 
 app.get('/api/transactions', (req, res) => {
-        const db = new sqlite3.Database(dbPath, sqlite3.OPEN_READONLY, (err) => {
+    const { start_date, end_date } = req.query;
+            db.all(`SELECT 
+                t.id AS transaction_id, 
+                t.amount, 
+                t.notes, 
+                t.transaction_date, 
+                t.merchant, 
+                t.created_at AS transaction_created_at,
+                t.created_by AS transaction_created_by,
+                t.modified_at AS transaction_modified_at,
+                t.modified_by AS transaction_modified_by,
+                u.id AS user_id, 
+                u.username, 
+                u.email, 
+                u.created_at AS user_created_at, 
+                c.id AS category_id, 
+                c.name AS category_name, 
+                c.description AS category_description, 
+                p.id AS payment_method_id, 
+                p.name AS payment_method_name, 
+                p.description AS payment_method_description 
+            FROM expense_transactions t 
+            JOIN users u ON t.user_id = u.id 
+            JOIN expense_categories c ON t.category_id = c.id 
+            JOIN payment_methods p ON t.payment_method_id = p.id
+            WHERE t.transaction_date BETWEEN ? AND ?
+            ORDER BY t.transaction_date DESC, t.id DESC;`, [start_date, end_date], (err, rows) => {
         if (err) {
-            console.error('Error opening database:', err.message);
-            res.status(500).json({ error: 'Failed to connect to the database' });
-            return;
+            console.error('Error executing query:', err.message);
+            res.status(500).json({ error: 'Failed to retrieve data' });
+        } else {
+            res.json(rows);
         }
-        const { start_date, end_date } = req.query;
-                db.all(`SELECT 
-                    t.id AS transaction_id, 
-                    t.amount, 
-                    t.notes, 
-                    t.transaction_date, 
-                    t.merchant, 
-                    u.id AS user_id, 
-                    u.username, 
-                    u.email, 
-                    u.created_at AS user_created_at, 
-                    c.id AS category_id, 
-                    c.name AS category_name, 
-                    c.description AS category_description, 
-                    p.id AS payment_method_id, 
-                    p.name AS payment_method_name, 
-                    p.description AS payment_method_description 
-                FROM expense_transactions t 
-                JOIN users u ON t.user_id = u.id 
-                JOIN expense_categories c ON t.category_id = c.id 
-                JOIN payment_methods p ON t.payment_method_id = p.id
-                WHERE t.transaction_date BETWEEN ? AND ?
-                ORDER BY t.transaction_date DESC, t.id DESC;`, [start_date, end_date], (err, rows) => {
-            if (err) {
-                console.error('Error executing query:', err.message);
-                res.status(500).json({ error: 'Failed to retrieve data' });
-            } else {
-                res.json(rows);
-            }
-            db.close((err) => {
-                if (err) {
-                    console.error('Error closing database:', err.message);
-                }
-            });
-        });
     });
 });
+
 
 // Create new transaction
 app.post('/api/transactions', (req, res) => {
     console.log(`POST /api/transactions called with body: ${JSON.stringify(req.body, null, 2)}`);
     const { user_id, amount, notes, transaction_date, merchant, category_id, payment_method_id } = req.body;
     
-    const db = new sqlite3.Database(dbPath, sqlite3.OPEN_READWRITE, (err) => {
-        if (err) {
-            console.error('Error opening database:', err.message);
-            return res.status(500).json({ error: 'Failed to connect to the database' });
-        }
-
-        const sql = `
-            INSERT INTO expense_transactions 
-            (user_id, amount, notes, transaction_date, merchant, category_id, payment_method_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        `;
-        
-        db.run(sql, [user_id, amount, notes, transaction_date, merchant, category_id, payment_method_id], 
-            function(err) {
-                if (err) {
-                    console.error('Error creating transaction:', err.message);
-                    res.status(500).json({ error: 'Failed to create transaction' });
-                } else {
-                    res.status(201).json({ 
-                        message: 'Transaction created successfully',
-                        id: this.lastID 
-                    });
-                }
-                db.close();
+    const sql = `
+        INSERT INTO expense_transactions 
+        (user_id, amount, notes, transaction_date, merchant, category_id, payment_method_id, created_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    
+    db.run(sql, [user_id, amount, notes, transaction_date, merchant, category_id, payment_method_id, user_id], 
+        function(err) {
+            if (err) {
+                console.error('Error creating transaction:', err.message);
+                res.status(500).json({ error: 'Failed to create transaction' });
+            } else {
+                res.status(201).json({ 
+                    message: 'Transaction created successfully',
+                    id: this.lastID 
+                });
             }
-        );
-    });
+        }
+    );
 });
 
 // Update existing transaction
@@ -657,40 +585,33 @@ app.put('/api/transactions/:id', (req, res) => {
     const { amount, notes, transaction_date, merchant, category_id, payment_method_id } = req.body;
     const transactionId = req.params.id;
     
-    const db = new sqlite3.Database(dbPath, sqlite3.OPEN_READWRITE, (err) => {
-        if (err) {
-            console.error('Error opening database:', err.message);
-            return res.status(500).json({ error: 'Failed to connect to the database' });
-        }
-
-        const sql = `
-            UPDATE expense_transactions 
-            SET amount = ?,
-                notes = ?,
-                transaction_date = ?,
-                merchant = ?,
-                category_id = ?,
-                payment_method_id = ?
-            WHERE id = ?
-        `;
-        
-        db.run(sql, [amount, notes, transaction_date, merchant, category_id, payment_method_id, transactionId], 
-            function(err) {
-                if (err) {
-                    console.error('Error updating transaction:', err.message);
-                    res.status(500).json({ error: 'Failed to update transaction' });
-                } else if (this.changes === 0) {
-                    res.status(404).json({ error: 'Transaction not found' });
-                } else {
-                    res.json({ 
-                        message: 'Transaction updated successfully',
-                        changes: this.changes 
-                    });
-                }
-                db.close();
+    const sql = `
+        UPDATE expense_transactions 
+        SET amount = ?,
+            notes = ?,
+            transaction_date = ?,
+            merchant = ?,
+            category_id = ?,
+            payment_method_id = ?,
+            modified_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+    `;
+    
+    db.run(sql, [amount, notes, transaction_date, merchant, category_id, payment_method_id, transactionId], 
+        function(err) {
+            if (err) {
+                console.error('Error updating transaction:', err.message);
+                res.status(500).json({ error: 'Failed to update transaction' });
+            } else if (this.changes === 0) {
+                res.status(404).json({ error: 'Transaction not found' });
+            } else {
+                res.json({ 
+                    message: 'Transaction updated successfully',
+                    changes: this.changes 
+                });
             }
-        );
-    });
+        }
+    );
 });
 
 // Delete existing transaction
@@ -698,26 +619,18 @@ app.delete('/api/transactions/:id', (req, res) => {
     console.log(`DELETE /api/transactions/${req.params.id} called`);
   const transactionId = req.params.id;
   
-    const db = new sqlite3.Database(dbPath, sqlite3.OPEN_READWRITE, (err) => {
-    if (err) {
-      console.error('Error opening database:', err.message);
-      return res.status(500).json({ error: 'Failed to connect to database' });
-    }
-
-    const sql = 'DELETE FROM expense_transactions WHERE id = ?';
-    
-    db.run(sql, [transactionId], function(err) {
-      if (err) {
-        console.error('Error deleting transaction:', err.message);
-        res.status(500).json({ error: 'Failed to delete transaction' });
-      } else if (this.changes === 0) {
-        res.status(404).json({ error: 'Transaction not found' });
-      } else {
-        res.json({ message: 'Transaction deleted successfully' });
-      }
-      db.close();
-    });
-  });
+        const sql = 'DELETE FROM expense_transactions WHERE id = ?';
+	
+        db.run(sql, [transactionId], function(err) {
+          if (err) {
+            console.error('Error deleting transaction:', err.message);
+            res.status(500).json({ error: 'Failed to delete transaction' });
+          } else if (this.changes === 0) {
+            res.status(404).json({ error: 'Transaction not found' });
+          } else {
+            res.json({ message: 'Transaction deleted successfully' });
+          }
+        });
 });
 
 // Serve static files under /amaska-app

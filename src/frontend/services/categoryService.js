@@ -6,6 +6,7 @@ export async function saveCategory(category) {
     description: category.description ?? category.notes,
     color: category.color,
     icon: category.icon,
+    user_id: 1, // Temporary user_id
   };
 
   if (category.id) {
