@@ -3,6 +3,7 @@ const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs');
 const path = require('path');
+const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const cron = require('node-cron');
 const recurringCron = process.env.RECURRING_CRON || '0 2 * * *';
@@ -40,6 +41,28 @@ const db = new sqlite3.Database(dbPath, (err) => {
 db.run('PRAGMA foreign_keys = ON');
 
 const app = express();
+const apiRouter = express.Router();
+
+// --- Auth / JWT setup ---
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-change-me';
+
+function authenticateJWT(req, res, next) {
+    const authHeader = req.headers.authorization || '';
+    const [scheme, token] = authHeader.split(' ');
+
+    if (scheme !== 'Bearer' || !token) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    jwt.verify(token, JWT_SECRET, (err, payload) => {
+        if (err) {
+            console.error('JWT verify error:', err.message);
+            return res.status(401).json({ error: 'Invalid token' });
+        }
+        req.user = payload; // { userId, username }
+        next();
+    });
+}
 
 // after applyRecurringExpenses is defined:
 cron.schedule(recurringCron, () => {
@@ -65,6 +88,42 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 app.use(express.json());
+
+// --- Auth routes ---
+// NOTE: for learning purposes this uses only username (no password storage yet).
+// You can later extend the users table with a password hash and verify it here.
+apiRouter.post('/auth/login', (req, res) => {
+    const { username } = req.body || {};
+
+    if (!username) {
+        return res.status(400).json({ error: 'Username is required' });
+    }
+
+    const sql = 'SELECT * FROM users WHERE username = ?';
+    db.get(sql, [username], (err, user) => {
+        if (err) {
+            console.error('Error looking up user for login:', err.message);
+            return res.status(500).json({ error: 'Login failed' });
+        }
+        if (!user) {
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        const token = jwt.sign(
+            { userId: user.id, username: user.username },
+            JWT_SECRET,
+            { expiresIn: '8h' }
+        );
+
+        res.json({
+            token,
+            user: { id: user.id, username: user.username, email: user.email },
+        });
+    });
+});
+
+// All routes defined on apiRouter after this point require a valid JWT
+apiRouter.use(authenticateJWT);
 
 // Utility to advance a YYYY-MM-DD date string by a given frequency/interval
 function addPeriod(dateStr, frequency, interval) {
@@ -179,7 +238,7 @@ function applyRecurringExpenses(upToDate, callback) {
     });
 }
 
-app.get('/api/users', (req, res) => {
+apiRouter.get('/users', (req, res) => {
     db.all('SELECT * FROM users', [], (err, rows) => {
         if (err) {
             console.error('Error executing query:', err.message);
@@ -190,7 +249,7 @@ app.get('/api/users', (req, res) => {
     });
 });
 
-app.get('/api/categories', (req, res) => {
+apiRouter.get('/categories', (req, res) => {
     db.all('SELECT * FROM expense_categories', [], (err, rows) => {
         if (err) {
             console.error('Error executing query:', err.message);
@@ -202,7 +261,7 @@ app.get('/api/categories', (req, res) => {
 });
 
 // Create new Category
-app.post('/api/categories', (req, res) => {
+apiRouter.post('/categories', (req, res) => {
     console.log(`POST /api/categories called with body: ${JSON.stringify(req.body, null, 2)}`);
     const { name, description, color, icon, user_id } = req.body;
     
@@ -228,7 +287,7 @@ app.post('/api/categories', (req, res) => {
 });
 
 // Update existing Category
-app.put('/api/categories/:id', (req, res) => {
+apiRouter.put('/categories/:id', (req, res) => {
     console.log(`PUT /api/categories/${req.params.id} called with body: ${JSON.stringify(req.body, null, 2)}`);
     const { name, description, color, icon, user_id } = req.body;
     const categoryId = req.params.id;
@@ -262,7 +321,7 @@ app.put('/api/categories/:id', (req, res) => {
 });
 
 // Delete existing Category
-app.delete('/api/categories/:id', (req, res) => {
+apiRouter.delete('/categories/:id', (req, res) => {
     console.log(`DELETE /api/categories/${req.params.id} called`);
   const categoryId = req.params.id;
   
@@ -280,7 +339,7 @@ app.delete('/api/categories/:id', (req, res) => {
     });
 });
 
-app.get('/api/payment_methods', (req, res) => {
+apiRouter.get('/payment_methods', (req, res) => {
     db.all('SELECT * FROM payment_methods', [], (err, rows) => {
         if (err) {
             console.error('Error executing query:', err.message);
@@ -292,7 +351,7 @@ app.get('/api/payment_methods', (req, res) => {
 });
 
 // Create new payment method
-app.post('/api/payment_methods', (req, res) => {
+apiRouter.post('/payment_methods', (req, res) => {
     console.log(`POST /api/payment_methods called with body: ${JSON.stringify(req.body, null, 2)}`);
     const { name, description, user_id } = req.body;
 
@@ -316,7 +375,7 @@ app.post('/api/payment_methods', (req, res) => {
 });
 
 // Update existing payment method
-app.put('/api/payment_methods/:id', (req, res) => {
+apiRouter.put('/payment_methods/:id', (req, res) => {
     console.log(`PUT /api/payment_methods/${req.params.id} called with body: ${JSON.stringify(req.body, null, 2)}`);
     const { name, description, user_id } = req.body;
     const paymentMethodId = req.params.id;
@@ -346,7 +405,7 @@ app.put('/api/payment_methods/:id', (req, res) => {
 });
 
 // Delete existing payment method
-app.delete('/api/payment_methods/:id', (req, res) => {
+apiRouter.delete('/payment_methods/:id', (req, res) => {
     console.log(`DELETE /api/payment_methods/${req.params.id} called`);
     const paymentMethodId = req.params.id;
 
@@ -365,7 +424,7 @@ app.delete('/api/payment_methods/:id', (req, res) => {
 });
 
 // Recurring expenses CRUD
-app.get('/api/recurring_expenses', (req, res) => {
+apiRouter.get('/recurring_expenses', (req, res) => {
     db.all('SELECT * FROM recurring_expenses', [], (err2, rows) => {
         if (err2) {
             console.error('Error fetching recurring_expenses:', err2.message);
@@ -376,7 +435,7 @@ app.get('/api/recurring_expenses', (req, res) => {
     });
 });
 
-app.post('/api/recurring_expenses', (req, res) => {
+apiRouter.post('/recurring_expenses', (req, res) => {
     const {
         user_id = 1,
         name,
@@ -427,7 +486,7 @@ app.post('/api/recurring_expenses', (req, res) => {
     );
 });
 
-app.put('/api/recurring_expenses/:id', (req, res) => {
+apiRouter.put('/recurring_expenses/:id', (req, res) => {
     const { id } = req.params;
     const {
         user_id = 1,
@@ -481,7 +540,7 @@ app.put('/api/recurring_expenses/:id', (req, res) => {
     );
 });
 
-app.delete('/api/recurring_expenses/:id', (req, res) => {
+apiRouter.delete('/recurring_expenses/:id', (req, res) => {
     const { id } = req.params;
 
     const sql = 'DELETE FROM recurring_expenses WHERE id = ?';
@@ -499,7 +558,7 @@ app.delete('/api/recurring_expenses/:id', (req, res) => {
 });
 
 // Manually trigger application of recurring expenses up to a given date (defaults to today)
-app.post('/api/recurring_expenses/apply', (req, res) => {
+apiRouter.post('/recurring_expenses/apply', (req, res) => {
     const { upToDate } = req.body || {};
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -515,7 +574,7 @@ app.post('/api/recurring_expenses/apply', (req, res) => {
     });
 });
 
-app.get('/api/transactions', (req, res) => {
+apiRouter.get('/transactions', (req, res) => {
     const { start_date, end_date } = req.query;
             db.all(`SELECT 
                 t.id AS transaction_id, 
@@ -554,7 +613,7 @@ app.get('/api/transactions', (req, res) => {
 
 
 // Create new transaction
-app.post('/api/transactions', (req, res) => {
+apiRouter.post('/transactions', (req, res) => {
     console.log(`POST /api/transactions called with body: ${JSON.stringify(req.body, null, 2)}`);
     const { user_id, amount, notes, transaction_date, merchant, category_id, payment_method_id } = req.body;
     
@@ -580,7 +639,7 @@ app.post('/api/transactions', (req, res) => {
 });
 
 // Update existing transaction
-app.put('/api/transactions/:id', (req, res) => {
+apiRouter.put('/transactions/:id', (req, res) => {
     console.log(`PUT /api/transactions/${req.params.id} called with body: ${JSON.stringify(req.body, null, 2)}`);
     const { amount, notes, transaction_date, merchant, category_id, payment_method_id } = req.body;
     const transactionId = req.params.id;
@@ -615,13 +674,13 @@ app.put('/api/transactions/:id', (req, res) => {
 });
 
 // Delete existing transaction
-app.delete('/api/transactions/:id', (req, res) => {
+apiRouter.delete('/transactions/:id', (req, res) => {
     console.log(`DELETE /api/transactions/${req.params.id} called`);
   const transactionId = req.params.id;
   
         const sql = 'DELETE FROM expense_transactions WHERE id = ?';
 	
-        db.run(sql, [transactionId], function(err) {
+                db.run(sql, [transactionId], function(err) {
           if (err) {
             console.error('Error deleting transaction:', err.message);
             res.status(500).json({ error: 'Failed to delete transaction' });
@@ -632,6 +691,9 @@ app.delete('/api/transactions/:id', (req, res) => {
           }
         });
 });
+
+// Mount API router under /api
+app.use('/api', apiRouter);
 
 // Serve static files under /amaska-app
 app.use('/amaska-app', express.static(path.join(__dirname, 'public')));

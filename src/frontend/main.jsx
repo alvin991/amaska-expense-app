@@ -5,16 +5,31 @@ import App from './App.jsx'
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { RouterProvider, createBrowserRouter } from 'react-router-dom';
 import TestingPage from './components/TestingPage.jsx';
+import { AuthProvider } from './AuthContext.jsx';
+import ProtectedRoute from './ProtectedRoute.jsx';
+import LoginPage from './components/LoginPage.jsx';
+import './axiosConfig.js';
 
 const router = createBrowserRouter([
-    { path: "/", element: <App /> },
-    { path: "/testing", element: <TestingPage /> },
-  ],
-  { basename: import.meta.env.BASE_URL,}
-);
+  { path: '/login', element: <LoginPage /> },
+  { path: '/', element: (
+    <ProtectedRoute>
+      <App />
+    </ProtectedRoute>
+  ) },
+  { path: '/testing', element: (
+    <ProtectedRoute>
+      <TestingPage />
+    </ProtectedRoute>
+  ) },
+], {
+  basename: import.meta.env.BASE_URL,
+});
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>
   </StrictMode>,
 )
