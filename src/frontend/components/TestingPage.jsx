@@ -21,20 +21,21 @@ function TestingPage() {
 
   return (
     <div style={{ backgroundColor: "lightgreen", height: "100vh" }}>
+      hello
       {/* {iconsFromDb.map((item) => {
-        const IconComponent = iconRegistry[item.id];
-        if (!IconComponent) return null; // or a fallback icon
+      //   const IconComponent = iconRegistry[item.id];
+      //   if (!IconComponent) return null; // or a fallback icon
 
-        return (
-          <IconElement
-            key={item.id}
-            icon={IconComponent}
-            label={item.label}
-            size={iconSize}
-            color={item.color}
-          />          
-        )
-      })} */}
+      //   return (
+      //     <IconElement
+      //       key={item.id}
+      //       icon={IconComponent}
+      //       label={item.label}
+      //       size={iconSize}
+      //       color={item.color}
+      //     />          
+      //   )
+      // })} */}
       {/* <IconSelect icons={iconsFromDb} /> */}
     </div>
   );
