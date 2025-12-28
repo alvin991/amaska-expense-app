@@ -7,8 +7,10 @@ import MySearchBox from './MySearchBox';
 import DashboardHeader from './dashboard/DashboardHeader';
 import DashboardCharts from './dashboard/DashboardCharts';
 import { formatLocalDate } from '../utils/dateUtils';   // NEW
+import BaseTabsPage from './BaseTabsPage';
 
 function MyLayout() {
+    const [activeTab, setActiveTab] = useState('/expenses-main');
     const [users, setUsers] = useState([]);
     const [categories, setCategories] = useState([]);
     const [paymentMethods, setPaymentMethods] = useState([]);
@@ -250,73 +252,103 @@ function MyLayout() {
     };
 
     return (
-        <div className="container">
-            <DashboardHeader
-                monthName={monthName}
-                budgetByMonth={BudgetByMonth}
-                periodTotalAmount={periodTotalAmount}
-                currentYear={currentYear}
-                currentMonth={currentMonth}
-                onChangeMonth={handleChangeMonth}
+        <div className="container mt-4">
+            <BaseTabsPage
+                activeKey={activeTab}
+                onSelect={(key) => {
+                    if (!key) return;
+                    setActiveTab(key);
+                }}
+                tabs={[
+                    { key: '/expenses-main', title: 'Daily Expenses' },
+                    { key: '/expenses-second', title: 'Recurring Expenses' },
+                ]}
             />
 
-            <div className="row line-break" style={{ height: '2vh', width: '100%' }} />
-
-            <DashboardCharts
-                leftToSpendData={leftToSpendData}
-                leftToSpend={leftToSpend}
-                chartDataByCategory={chartDataByCategory}
-                chartDataByPaymentMethod={chartDataByPaymentMethod}
-            />
-
-            <div className="row line-break" style={{ height: '2vh', width: '100%' }} />
-
-            <div id="bottom-panel" className="row" style={{ 
-                height: '60vh', 
-                width: '100%', 
-                backgroundColor: 'lightblue',
-                display: 'flex',
-                flexDirection: 'column',
-            }}>
-                <h4 style={{ margin: 0, marginBottom: '0.5rem' }}>TRANSACTIONS</h4>
-
-                {/* Search box (keeps existing width/layout) */}
-                <MySearchBox
-                    onQueryChange={setSearchQuery}
-                />
-
-                {/* New Transaction button, same width as search box */}
-                <div style={{ paddingLeft: '1.7rem', paddingRight: '1.7rem', marginBottom: '0.5rem' }}>
-                    <button
-                        type="button"
-                        className="btn btn-primary w-100"
-                        onClick={handleNewTransactionClick}
-                    >
-                        New Transaction
-                    </button>
-                </div>
-
-                <div style={{ flex: 1, overflow: 'auto', paddingRight: '0px !important' }}>
-                    <DateGroupedTable 
-                        data={filteredTransactions}
-                        onRowDoubleClick={handleRowDoubleClick}
-                        className="position-fixed"
-                        categories={categories}
+            {activeTab === '/expenses-main' && (
+                <>
+                    <DashboardHeader
+                        monthName={monthName}
+                        budgetByMonth={BudgetByMonth}
+                        periodTotalAmount={periodTotalAmount}
+                        currentYear={currentYear}
+                        currentMonth={currentMonth}
+                        onChangeMonth={handleChangeMonth}
                     />
+
+                    <div className="row line-break" style={{ height: '2vh', width: '100%' }} />
+
+                    <DashboardCharts
+                        leftToSpendData={leftToSpendData}
+                        leftToSpend={leftToSpend}
+                        chartDataByCategory={chartDataByCategory}
+                        chartDataByPaymentMethod={chartDataByPaymentMethod}
+                    />
+
+                    <div className="row line-break" style={{ height: '2vh', width: '100%' }} />
+
+                    <div
+                        id="bottom-panel"
+                        className="row"
+                        style={{
+                            height: '60vh',
+                            width: '100%',
+                            backgroundColor: 'lightblue',
+                            display: 'flex',
+                            flexDirection: 'column',
+                        }}
+                    >
+                        <h4 style={{ margin: 0, marginBottom: '0.5rem' }}>TRANSACTIONS</h4>
+
+                        <MySearchBox onQueryChange={setSearchQuery} />
+
+                        <div
+                            style={{
+                                paddingLeft: '1.7rem',
+                                paddingRight: '1.7rem',
+                                marginBottom: '0.5rem',
+                            }}
+                        >
+                            <button
+                                type="button"
+                                className="btn btn-primary w-100"
+                                onClick={handleNewTransactionClick}
+                            >
+                                New Transaction
+                            </button>
+                        </div>
+
+                        <div style={{ flex: 1, overflow: 'auto', paddingRight: '0px !important' }}>
+                            <DateGroupedTable
+                                data={filteredTransactions}
+                                onRowDoubleClick={handleRowDoubleClick}
+                                className="position-fixed"
+                                categories={categories}
+                            />
+                        </div>
+                        <ModalBase
+                            key={transactionKey}
+                            propTransaction={selectedTransaction}
+                            paymentMethods={paymentMethods}
+                            categories={categories}
+                            categoriesUsed={categoriesUsed}
+                            isOpen={showModal}
+                            refreshTransactions={refreshTransactions}
+                            refreshCategories={refreshCategories}
+                            refreshPaymentMethods={refreshPaymentMethods}
+                            onHide={handleHideModal}
+                        />
+                    </div>
+                </>
+            )}
+
+            {activeTab === '/expenses-second' && (
+                <div>
+                    {/* Placeholder for your new second tab page */}
+                    <h3>Second Expenses Page</h3>
+                    <p>You can build your new layout here.</p>
                 </div>
-                <ModalBase
-                  key={transactionKey}          // <--- force re-mount OR:
-                  propTransaction={selectedTransaction}
-                  paymentMethods={paymentMethods}
-                  categories={categories}
-                  categoriesUsed={categoriesUsed}
-                  isOpen={showModal}
-                  refreshTransactions={refreshTransactions}
-                  refreshCategories={refreshCategories}
-                  refreshPaymentMethods={refreshPaymentMethods}
-                  onHide={handleHideModal}
-                />
-            </div>
+            )}
         </div>
     );
 }
