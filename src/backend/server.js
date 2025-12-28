@@ -263,7 +263,8 @@ apiRouter.get('/categories', (req, res) => {
 // Create new Category
 apiRouter.post('/categories', (req, res) => {
     console.log(`POST /api/categories called with body: ${JSON.stringify(req.body, null, 2)}`);
-    const { name, description, color, icon, user_id } = req.body;
+    const { name, description, color, icon } = req.body;
+    const userId = req.user.userId;
     
     const sql = `
         INSERT INTO expense_categories 
@@ -271,7 +272,7 @@ apiRouter.post('/categories', (req, res) => {
         VALUES (?, ?, ?, ?, ?)
     `;
     
-    db.run(sql, [name, description, color, icon, user_id || null], 
+    db.run(sql, [name, description, color, icon, userId || null], 
         function(err) {
             if (err) {
                 console.error('Error creating category:', err.message);
@@ -289,7 +290,8 @@ apiRouter.post('/categories', (req, res) => {
 // Update existing Category
 apiRouter.put('/categories/:id', (req, res) => {
     console.log(`PUT /api/categories/${req.params.id} called with body: ${JSON.stringify(req.body, null, 2)}`);
-    const { name, description, color, icon, user_id } = req.body;
+    const { name, description, color, icon } = req.body;
+    const userId = req.user.userId;
     const categoryId = req.params.id;
     
     const sql = `
@@ -303,7 +305,7 @@ apiRouter.put('/categories/:id', (req, res) => {
         WHERE id = ?
     `;
     
-    db.run(sql, [name, description, color, icon, user_id || null, categoryId], 
+    db.run(sql, [name, description, color, icon, userId || null, categoryId], 
         function(err) {
             if (err) {
                 console.error('Error updating category:', err.message);
@@ -353,7 +355,8 @@ apiRouter.get('/payment_methods', (req, res) => {
 // Create new payment method
 apiRouter.post('/payment_methods', (req, res) => {
     console.log(`POST /api/payment_methods called with body: ${JSON.stringify(req.body, null, 2)}`);
-    const { name, description, user_id } = req.body;
+    const { name, description } = req.body;
+    const userId = req.user.userId;
 
     const sql = `
         INSERT INTO payment_methods 
@@ -361,7 +364,7 @@ apiRouter.post('/payment_methods', (req, res) => {
         VALUES (?, ?, ?)
     `;
 
-    db.run(sql, [name, description, user_id || null], function (err) {
+    db.run(sql, [name, description, userId || null], function (err) {
         if (err) {
             console.error('Error creating payment method:', err.message);
             res.status(500).json({ error: err.message || 'Failed to create payment method' });
@@ -377,7 +380,8 @@ apiRouter.post('/payment_methods', (req, res) => {
 // Update existing payment method
 apiRouter.put('/payment_methods/:id', (req, res) => {
     console.log(`PUT /api/payment_methods/${req.params.id} called with body: ${JSON.stringify(req.body, null, 2)}`);
-    const { name, description, user_id } = req.body;
+    const { name, description } = req.body;
+    const userId = req.user.userId;
     const paymentMethodId = req.params.id;
 
     const sql = `
@@ -389,7 +393,7 @@ apiRouter.put('/payment_methods/:id', (req, res) => {
         WHERE id = ?
     `;
 
-    db.run(sql, [name, description, user_id || null, paymentMethodId], function (err) {
+    db.run(sql, [name, description, userId || null, paymentMethodId], function (err) {
         if (err) {
             console.error('Error updating payment method:', err.message);
             res.status(500).json({ error: 'Failed to update payment method' });
@@ -437,7 +441,6 @@ apiRouter.get('/recurring_expenses', (req, res) => {
 
 apiRouter.post('/recurring_expenses', (req, res) => {
     const {
-        user_id = 1,
         name,
         project_amount,
         notes,
@@ -449,6 +452,7 @@ apiRouter.post('/recurring_expenses', (req, res) => {
         start_date,
         end_date,
     } = req.body;
+    const userId = req.user.userId;
 
     const sql = `
         INSERT INTO recurring_expenses
@@ -461,7 +465,7 @@ apiRouter.post('/recurring_expenses', (req, res) => {
     db.run(
         sql,
         [
-            user_id,
+            userId,
             name,
             project_amount,
             notes,
@@ -473,7 +477,7 @@ apiRouter.post('/recurring_expenses', (req, res) => {
             start_date,
             end_date || null,
             nextRun,
-            user_id,
+            userId,
         ],
         function (insertErr) {
             if (insertErr) {
@@ -489,7 +493,6 @@ apiRouter.post('/recurring_expenses', (req, res) => {
 apiRouter.put('/recurring_expenses/:id', (req, res) => {
     const { id } = req.params;
     const {
-        user_id = 1,
         name,
         project_amount,
         notes,
@@ -502,18 +505,19 @@ apiRouter.put('/recurring_expenses/:id', (req, res) => {
         end_date,
         next_run_date,
     } = req.body;
+    const userId = req.user.userId;
 
     const sql = `
         UPDATE recurring_expenses
         SET user_id = ?, name = ?, project_amount = ?, notes = ?, merchant = ?, project_category_id = ?, project_payment_method_id = ?,
-            frequency = ?, interval = ?, start_date = ?, end_date = ?, next_run_date = ?, modified_at = CURRENT_TIMESTAMP
+            frequency = ?, interval = ?, start_date = ?, end_date = ?, next_run_date = ?, modified_at = CURRENT_TIMESTAMP, modified_by = ?
         WHERE id = ?
     `;
 
     db.run(
         sql,
         [
-            user_id,
+            userId,
             name,
             project_amount,
             notes,
@@ -525,7 +529,7 @@ apiRouter.put('/recurring_expenses/:id', (req, res) => {
             start_date,
             end_date || null,
             next_run_date || start_date,
-            id,
+            userId,
         ],
         function (updateErr) {
             if (updateErr) {
@@ -615,7 +619,8 @@ apiRouter.get('/transactions', (req, res) => {
 // Create new transaction
 apiRouter.post('/transactions', (req, res) => {
     console.log(`POST /api/transactions called with body: ${JSON.stringify(req.body, null, 2)}`);
-    const { user_id, amount, notes, transaction_date, merchant, category_id, payment_method_id } = req.body;
+    const { amount, notes, transaction_date, merchant, category_id, payment_method_id } = req.body;
+    const userId = req.user.userId;
     
     const sql = `
         INSERT INTO expense_transactions 
@@ -623,7 +628,7 @@ apiRouter.post('/transactions', (req, res) => {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
     
-    db.run(sql, [user_id, amount, notes, transaction_date, merchant, category_id, payment_method_id, user_id], 
+    db.run(sql, [userId, amount, notes, transaction_date, merchant, category_id, payment_method_id, userId], 
         function(err) {
             if (err) {
                 console.error('Error creating transaction:', err.message);
@@ -642,6 +647,7 @@ apiRouter.post('/transactions', (req, res) => {
 apiRouter.put('/transactions/:id', (req, res) => {
     console.log(`PUT /api/transactions/${req.params.id} called with body: ${JSON.stringify(req.body, null, 2)}`);
     const { amount, notes, transaction_date, merchant, category_id, payment_method_id } = req.body;
+    const userId = req.user.userId;
     const transactionId = req.params.id;
     
     const sql = `
@@ -652,11 +658,12 @@ apiRouter.put('/transactions/:id', (req, res) => {
             merchant = ?,
             category_id = ?,
             payment_method_id = ?,
-            modified_at = CURRENT_TIMESTAMP
+            modified_at = CURRENT_TIMESTAMP,
+            modified_by = ?
         WHERE id = ?
     `;
     
-    db.run(sql, [amount, notes, transaction_date, merchant, category_id, payment_method_id, transactionId], 
+    db.run(sql, [amount, notes, transaction_date, merchant, category_id, payment_method_id, userId, transactionId], 
         function(err) {
             if (err) {
                 console.error('Error updating transaction:', err.message);

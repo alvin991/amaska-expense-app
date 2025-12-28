@@ -2,7 +2,6 @@ import axios from 'axios';
 
 export async function saveTransaction(transaction) {
   const payload = {
-    user_id: 1,
     amount: parseFloat(transaction.amount) || 0,
     notes: transaction.notes,
     transaction_date: transaction.transaction_date || transaction.date,
