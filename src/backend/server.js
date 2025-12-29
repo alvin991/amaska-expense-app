@@ -194,27 +194,24 @@ function applyRecurringExpenses(upToDate, callback) {
 
                 const insertSql = `
                     INSERT INTO expense_transactions
-                    (user_id, project_amount, amount, notes, transaction_date, merchant, project_category_id, category_id, project_payment_method_id, payment_method_id, recurring_expense_id, created_by)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (project_amount, amount, notes, transaction_date, merchant, project_category_id, category_id, project_payment_method_id, payment_method_id, recurring_expense_id, created_by)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 `;
 
                 db.run(
                     insertSql,
                     [
-                        rec.user_id,
                         rec.project_amount, // planned amount snapshot
                         rec.project_amount, // initial actual amount equals planned
                         rec.notes,
                         nextRunDate,
                         rec.merchant,
-
-
                         rec.project_category_id,
                         rec.project_category_id,
                         rec.project_payment_method_id,
                         rec.project_payment_method_id,
                         rec.id,
-                        rec.user_id,
+                        'SYSTEM',
                     ],
                     (insertErr) => {
                         if (insertErr) {
@@ -456,8 +453,8 @@ apiRouter.post('/recurring_expenses', (req, res) => {
 
     const sql = `
         INSERT INTO recurring_expenses
-        (user_id, name, project_amount, notes, merchant, project_category_id, project_payment_method_id, frequency, interval, start_date, end_date, next_run_date, created_by)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (name, project_amount, notes, merchant, project_category_id, project_payment_method_id, frequency, interval, start_date, end_date, next_run_date, created_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const nextRun = start_date;
@@ -465,7 +462,6 @@ apiRouter.post('/recurring_expenses', (req, res) => {
     db.run(
         sql,
         [
-            userId,
             name,
             project_amount,
             notes,
@@ -509,7 +505,7 @@ apiRouter.put('/recurring_expenses/:id', (req, res) => {
 
     const sql = `
         UPDATE recurring_expenses
-        SET user_id = ?, name = ?, project_amount = ?, notes = ?, merchant = ?, project_category_id = ?, project_payment_method_id = ?,
+        SET name = ?, project_amount = ?, notes = ?, merchant = ?, project_category_id = ?, project_payment_method_id = ?,
             frequency = ?, interval = ?, start_date = ?, end_date = ?, next_run_date = ?, modified_at = CURRENT_TIMESTAMP, modified_by = ?
         WHERE id = ?
     `;
@@ -517,7 +513,6 @@ apiRouter.put('/recurring_expenses/:id', (req, res) => {
     db.run(
         sql,
         [
-            userId,
             name,
             project_amount,
             notes,
@@ -590,10 +585,6 @@ apiRouter.get('/transactions', (req, res) => {
                 t.created_by AS transaction_created_by,
                 t.modified_at AS transaction_modified_at,
                 t.modified_by AS transaction_modified_by,
-                u.id AS user_id, 
-                u.username, 
-                u.email, 
-                u.created_at AS user_created_at, 
                 c.id AS category_id, 
                 c.name AS category_name, 
                 c.description AS category_description, 
@@ -601,7 +592,6 @@ apiRouter.get('/transactions', (req, res) => {
                 p.name AS payment_method_name, 
                 p.description AS payment_method_description 
             FROM expense_transactions t 
-            JOIN users u ON t.user_id = u.id 
             JOIN expense_categories c ON t.category_id = c.id 
             JOIN payment_methods p ON t.payment_method_id = p.id
             WHERE t.transaction_date BETWEEN ? AND ?
@@ -624,11 +614,11 @@ apiRouter.post('/transactions', (req, res) => {
     
     const sql = `
         INSERT INTO expense_transactions 
-        (user_id, amount, notes, transaction_date, merchant, category_id, payment_method_id, created_by)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        (amount, notes, transaction_date, merchant, category_id, payment_method_id, created_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
     
-    db.run(sql, [userId, amount, notes, transaction_date, merchant, category_id, payment_method_id, userId], 
+    db.run(sql, [amount, notes, transaction_date, merchant, category_id, payment_method_id, userId], 
         function(err) {
             if (err) {
                 console.error('Error creating transaction:', err.message);

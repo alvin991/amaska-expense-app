@@ -56,7 +56,6 @@ INSERT INTO payment_methods (name, description, created_by) VALUES ('Costco (502
 
 CREATE TABLE IF NOT EXISTS expense_transactions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
     project_amount DECIMAL(10, 2), -- planned amount at generation time
     amount DECIMAL(10, 2) NOT NULL, -- actual amount (can be edited later)
     notes VARCHAR(255),
@@ -71,7 +70,6 @@ CREATE TABLE IF NOT EXISTS expense_transactions (
     created_by INTEGER,
     modified_at TIMESTAMP,
     modified_by INTEGER,
-    FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (category_id) REFERENCES expense_categories(id),
     FOREIGN KEY (payment_method_id) REFERENCES payment_methods(id),
     FOREIGN KEY (project_category_id) REFERENCES expense_categories(id),
@@ -86,7 +84,6 @@ CREATE TABLE IF NOT EXISTS recurring_expenses (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name VARCHAR(100) NOT NULL,
     enabled BOOLEAN NOT NULL DEFAULT 1,
-    user_id INTEGER NOT NULL,
     project_amount DECIMAL(10, 2) NOT NULL,
     notes VARCHAR(255),
     merchant VARCHAR(100) NOT NULL,
@@ -101,7 +98,6 @@ CREATE TABLE IF NOT EXISTS recurring_expenses (
     created_by INTEGER,
     modified_at TIMESTAMP,
     modified_by INTEGER,
-    FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (project_category_id) REFERENCES expense_categories(id),
     FOREIGN KEY (project_payment_method_id) REFERENCES payment_methods(id),
     FOREIGN KEY (created_by) REFERENCES users(id),
