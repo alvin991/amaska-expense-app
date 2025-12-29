@@ -194,22 +194,22 @@ function applyRecurringExpenses(upToDate, callback) {
 
                 const insertSql = `
                     INSERT INTO expense_transactions
-                    (project_amount, amount, notes, transaction_date, merchant, project_category_id, category_id, project_payment_method_id, payment_method_id, recurring_expense_id, created_by)
+                    (projected_amount, amount, notes, transaction_date, merchant, projected_category_id, category_id, projected_payment_method_id, payment_method_id, recurring_expense_id, created_by)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 `;
 
                 db.run(
                     insertSql,
                     [
-                        rec.project_amount, // planned amount snapshot
-                        rec.project_amount, // initial actual amount equals planned
+                        rec.projected_amount, // planned amount snapshot
+                        rec.projected_amount, // initial actual amount equals planned
                         rec.notes,
                         nextRunDate,
                         rec.merchant,
-                        rec.project_category_id,
-                        rec.project_category_id,
-                        rec.project_payment_method_id,
-                        rec.project_payment_method_id,
+                        rec.projected_category_id,
+                        rec.projected_category_id,
+                        rec.projected_payment_method_id,
+                        rec.projected_payment_method_id,
                         rec.id,
                         'SYSTEM',
                     ],
@@ -439,11 +439,11 @@ apiRouter.get('/recurring_expenses', (req, res) => {
 apiRouter.post('/recurring_expenses', (req, res) => {
     const {
         name,
-        project_amount,
+        projected_amount,
         notes,
         merchant,
-        project_category_id,
-        project_payment_method_id,
+        projected_category_id,
+        projected_payment_method_id,
         frequency,
         interval = 1,
         start_date,
@@ -453,7 +453,7 @@ apiRouter.post('/recurring_expenses', (req, res) => {
 
     const sql = `
         INSERT INTO recurring_expenses
-        (name, project_amount, notes, merchant, project_category_id, project_payment_method_id, frequency, interval, start_date, end_date, next_run_date, created_by)
+        (name, projected_amount, notes, merchant, projected_category_id, projected_payment_method_id, frequency, interval, start_date, end_date, next_run_date, created_by)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
@@ -463,11 +463,11 @@ apiRouter.post('/recurring_expenses', (req, res) => {
         sql,
         [
             name,
-            project_amount,
+            projected_amount,
             notes,
             merchant,
-            project_category_id,
-            project_payment_method_id,
+            projected_category_id,
+            projected_payment_method_id,
             frequency,
             interval,
             start_date,
@@ -490,11 +490,11 @@ apiRouter.put('/recurring_expenses/:id', (req, res) => {
     const { id } = req.params;
     const {
         name,
-        project_amount,
+        projected_amount,
         notes,
         merchant,
-        project_category_id,
-        project_payment_method_id,
+        projected_category_id,
+        projected_payment_method_id,
         frequency,
         interval = 1,
         start_date,
@@ -505,7 +505,7 @@ apiRouter.put('/recurring_expenses/:id', (req, res) => {
 
     const sql = `
         UPDATE recurring_expenses
-        SET name = ?, project_amount = ?, notes = ?, merchant = ?, project_category_id = ?, project_payment_method_id = ?,
+        SET name = ?, projected_amount = ?, notes = ?, merchant = ?, projected_category_id = ?, projected_payment_method_id = ?,
             frequency = ?, interval = ?, start_date = ?, end_date = ?, next_run_date = ?, modified_at = CURRENT_TIMESTAMP, modified_by = ?
         WHERE id = ?
     `;
@@ -514,11 +514,11 @@ apiRouter.put('/recurring_expenses/:id', (req, res) => {
         sql,
         [
             name,
-            project_amount,
+            projected_amount,
             notes,
             merchant,
-            project_category_id,
-            project_payment_method_id,
+            projected_category_id,
+            projected_payment_method_id,
             frequency,
             interval,
             start_date,
