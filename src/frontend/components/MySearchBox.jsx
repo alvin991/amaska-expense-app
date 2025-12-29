@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-function MySearchBox({ onQueryChange }) {
+function MySearchBox({ onQueryChange, placeholder = 'Search Merchant, Category or Payment Method' }) {
   const [query, setQuery] = useState('');
 
   const handleChange = (e) => {
@@ -14,7 +14,7 @@ function MySearchBox({ onQueryChange }) {
       <input
         type="text"
         className="form-control"
-        placeholder="Search Merchant, Category or Payment Method"
+        placeholder={placeholder}
         value={query}
         onChange={handleChange}
       />

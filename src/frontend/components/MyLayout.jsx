@@ -300,7 +300,7 @@ function MyLayout() {
                     >
                         <h4 style={{ margin: 0, marginBottom: '0.5rem' }}>TRANSACTIONS</h4>
 
-                        <MySearchBox onQueryChange={setSearchQuery} />
+                        <MySearchBox onQueryChange={setSearchQuery} placeholder='Search Merchant, Category or Payment Method' />
 
                         <div
                             style={{
