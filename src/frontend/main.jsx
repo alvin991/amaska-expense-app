@@ -6,7 +6,6 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import { RouterProvider, createBrowserRouter } from 'react-router-dom';
 import TestingPage from './components/TestingPage.jsx';
 import MyLayout from './components/MyLayout.jsx';
-import RecurringPage from './components/RecurringPage.jsx';
 import CardsPage from './components/CardsPage.jsx';
 import UsersPage from './components/UsersPage.jsx';
 import InvestmentsPage from './components/InvestmentsPage.tsx';
@@ -28,7 +27,6 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <TestingPage /> },
       { path: 'expenses', element: <MyLayout /> },
-      { path: 'recurring', element: <RecurringPage /> },
       { path: 'cards', element: <CardsPage /> },
       { path: 'users', element: <UsersPage /> },
       { path: 'investments', element: <InvestmentsPage /> },
