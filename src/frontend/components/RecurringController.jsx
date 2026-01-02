@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import RecurringExpensesTab from './RecurringExpensesTab';
-import { listRecurringExpenses } from '../services/recurringExpensesService';
-import { getRecurringExpenseRelatedTransactions } from '../services/transactionService';
+import RecurringTemplatesTab from './RecurringTemplatesTab';
+import { listRecurringTemplates } from '../services/recurringTemplatesService';
+import { getRecurringTemplateRelatedTransactions } from '../services/transactionService';
 import useExpenseStore from '../store/useExpenseStore';
 
 function RecurringController({ onOpenModal, registerRefreshRecurring }) {
   const {
-    recurringExpenses,
-    setRecurringExpenses,
-    setSelectedRecurringExpense,
-    setSelectedRecurringExpenseRelatedTransactions,
+    recurringTemplates,
+    setRecurringTemplates,
+    setSelectedRecurringTemplate,
+    setSelectedRecurringTemplateRelatedTransactions,
     setSelectedTransaction,
   } = useExpenseStore();
 
@@ -17,47 +17,47 @@ function RecurringController({ onOpenModal, registerRefreshRecurring }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchRecurringExpenses = useCallback(async () => {
+  const fetchRecurringTemplates = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await listRecurringExpenses();
-      setRecurringExpenses(data);
+      const data = await listRecurringTemplates();
+      setRecurringTemplates(data);
     } catch (err) {
       setError(err.message || String(err));
     } finally {
       setLoading(false);
     }
-  }, [setRecurringExpenses]);
+  }, [setRecurringTemplates]);
 
   useEffect(() => {
-    fetchRecurringExpenses();
-  }, [fetchRecurringExpenses]);
+    fetchRecurringTemplates();
+  }, [fetchRecurringTemplates]);
 
   // Register refresh callback with parent (MyLayout)
   useEffect(() => {
     if (registerRefreshRecurring) {
-      registerRefreshRecurring(() => fetchRecurringExpenses);
+      registerRefreshRecurring(() => fetchRecurringTemplates);
     }
-  }, [fetchRecurringExpenses, registerRefreshRecurring]);
+  }, [fetchRecurringTemplates, registerRefreshRecurring]);
 
-  const filteredRecurringExpenses = useMemo(() => {
+  const filteredRecurringTemplates = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return recurringExpenses || [];
+    if (!q) return recurringTemplates || [];
 
-    return (recurringExpenses || []).filter((item) => {
+    return (recurringTemplates || []).filter((item) => {
       const name = item.name ? String(item.name).toLowerCase() : '';
       const merchant = item.merchant ? String(item.merchant).toLowerCase() : '';
       return name.includes(q) || merchant.includes(q);
     });
-  }, [recurringExpenses, searchQuery]);
+  }, [recurringTemplates, searchQuery]);
 
-  const handleRowDoubleClick = async (recurringExpenseId) => {
-    const recurringExpense = recurringExpenseId
-      ? recurringExpenses.find((r) => r.id === recurringExpenseId)
+  const handleRowDoubleClick = async (recurringTemplateId) => {
+    const recurringTemplate = recurringTemplateId
+      ? recurringTemplates.find((r) => r.id === recurringTemplateId)
       : null;
-    setSelectedRecurringExpense(recurringExpense || null);
-    const relatedTransactions = await getRecurringExpenseRelatedTransactions(recurringExpenseId);
-    setSelectedRecurringExpenseRelatedTransactions(relatedTransactions || []);
+    setSelectedRecurringTemplate(recurringTemplate || null);
+    const relatedTransactions = await getRecurringTemplateRelatedTransactions(recurringTemplateId);
+    setSelectedRecurringTemplateRelatedTransactions(relatedTransactions || []);
     // setSelectedTransaction(null);
     if (onOpenModal) {
       onOpenModal();
@@ -65,7 +65,7 @@ function RecurringController({ onOpenModal, registerRefreshRecurring }) {
   };
 
   const handleNewRecurringClick = () => {
-    setSelectedRecurringExpense(null);
+    setSelectedRecurringTemplate(null);
     // setSelectedTransaction(null);
     if (onOpenModal) {
       onOpenModal();
@@ -76,13 +76,13 @@ function RecurringController({ onOpenModal, registerRefreshRecurring }) {
   if (error) return <div>Error: {error}</div>;
 
   return (
-    <RecurringExpensesTab
+    <RecurringTemplatesTab
       title="Recurring Expenses"
       onSearchChange={setSearchQuery}
       placeholder="Search Name, Merchant"
       onNewClick={handleNewRecurringClick}
       newLabel="New Recurring Expense"
-      filteredTransactions={filteredRecurringExpenses}
+      filteredTransactions={filteredRecurringTemplates}
       handleRowDoubleClick={handleRowDoubleClick}
     />
   );

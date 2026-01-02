@@ -1,8 +1,8 @@
 import React from 'react';
 import { Table } from 'react-bootstrap';
 
-function RecurringExpenseRelatedTransactionsPage({
-  recurringExpenseId,
+function RecurringTemplateRelatedTransactionsPage({
+  recurringTemplateId,
   transactions,
   onRowDoubleClick,
 }) {
@@ -28,7 +28,7 @@ function RecurringExpenseRelatedTransactionsPage({
       }}
     >
       <h5 style={{ margin: 0 }}>
-        Transactions History {recurringExpenseId ? ` (Template #${recurringExpenseId})` : ''}
+        Transactions History {recurringTemplateId ? ` (Template #${recurringTemplateId})` : ''}
       </h5>
 
       <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
@@ -65,4 +65,4 @@ function RecurringExpenseRelatedTransactionsPage({
   );
 }
 
-export default RecurringExpenseRelatedTransactionsPage;
+export default RecurringTemplateRelatedTransactionsPage;

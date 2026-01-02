@@ -2,7 +2,7 @@
 
 export type RecurringFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
-export interface RecurringExpenseInput {
+export interface RecurringTemplateInput {
   id?: number;
   name: string;
   projected_amount: number;

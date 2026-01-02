@@ -1,6 +1,6 @@
 import { Table } from 'react-bootstrap';
 
-interface RecurringExpense {
+interface RecurringTemplate {
   id: number;
   name: string;
   merchant?: string;
@@ -11,12 +11,12 @@ interface RecurringExpense {
   next_run_date?: string;
 }
 
-interface RecurringExpensesTableProps {
-  data: RecurringExpense[];
+interface RecurringTemplatesTableProps {
+  data: RecurringTemplate[];
   onRowDoubleClick?: (id: number) => void;
 }
 
-function RecurringExpensesTable({ data, onRowDoubleClick }: RecurringExpensesTableProps) {
+function RecurringTemplatesTable({ data, onRowDoubleClick }: RecurringTemplatesTableProps) {
   if (!data || data.length === 0) {
     return <p>No recurring expenses to display.</p>;
   }
@@ -87,4 +87,4 @@ function RecurringExpensesTable({ data, onRowDoubleClick }: RecurringExpensesTab
   );
 }
 
-export default RecurringExpensesTable;
+export default RecurringTemplatesTable;

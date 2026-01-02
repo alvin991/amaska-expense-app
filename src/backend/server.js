@@ -64,7 +64,7 @@ function authenticateJWT(req, res, next) {
     });
 }
 
-// after applyRecurringExpenses is defined:
+// after applyRecurringTemplates is defined:
 cron.schedule(recurringCron, () => {
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -72,8 +72,8 @@ cron.schedule(recurringCron, () => {
     const dd = String(today.getDate()).padStart(2, '0');
     const target = `${yyyy}-${mm}-${dd}`;
     
-    console.log('[cron] Applying recurring expenses up to', target);
-    applyRecurringExpenses(target, (err) => {
+    console.log('[cron] Applying Recurring Templates up to', target);
+    applyRecurringTemplates(target, (err) => {
         if (err) console.error('[cron] Failed:', err.message);
         else console.log('[cron] Done');
     });
@@ -154,13 +154,13 @@ function addPeriod(dateStr, frequency, interval) {
     return `${yyyy}-${mm}-${dd}`;
 }
 
-// Generate recurring transactions up to (and including) a given date
-function applyRecurringExpenses(upToDate, callback) {
+// Generate Recurring Templates transactions up to (and including) a given date
+function applyRecurringTemplates(upToDate, callback) {
     const targetDate = upToDate;
 
-    db.all('SELECT * FROM recurring_expenses', [], (err, rows) => {
+    db.all('SELECT * FROM recurring_templates', [], (err, rows) => {
         if (err) {
-            console.error('Error reading recurring_expenses:', err.message);
+            console.error('Error reading recurring_templates:', err.message);
             return callback(err);
         }
 
@@ -182,7 +182,7 @@ function applyRecurringExpenses(upToDate, callback) {
             const insertOne = () => {
                 if (!shouldContinue()) {
                     // update next_run_date in DB and move to next template
-                    const updateSql = 'UPDATE recurring_expenses SET next_run_date = ? WHERE id = ?';
+                    const updateSql = 'UPDATE recurring_templates SET next_run_date = ? WHERE id = ?';
                     db.run(updateSql, [nextRunDate, rec.id], (updateErr) => {
                         if (updateErr) {
                             console.error('Error updating next_run_date:', updateErr.message);
@@ -194,7 +194,7 @@ function applyRecurringExpenses(upToDate, callback) {
 
                 const insertSql = `
                     INSERT INTO expense_transactions
-                    (projected_amount, amount, notes, transaction_date, merchant, projected_category_id, category_id, projected_payment_method_id, payment_method_id, recurring_expense_id, created_by)
+                    (projected_amount, amount, notes, transaction_date, merchant, projected_category_id, category_id, projected_payment_method_id, payment_method_id, recurring_template_id, created_by)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 `;
 
@@ -215,7 +215,7 @@ function applyRecurringExpenses(upToDate, callback) {
                     ],
                     (insertErr) => {
                         if (insertErr) {
-                            console.error('Error inserting recurring transaction:', insertErr.message);
+                            console.error('Error inserting Recurring Template transaction:', insertErr.message);
                             // Skip further inserts for this template
                             processNext(index + 1);
                             return;
@@ -424,20 +424,20 @@ apiRouter.delete('/payment_methods/:id', (req, res) => {
     });
 });
 
-// Recurring expenses CRUD
-apiRouter.get('/recurring_expenses', (req, res) => {
-    db.all('SELECT * FROM recurring_expenses', [], (err2, rows) => {
+// Recurring Templates CRUD
+apiRouter.get('/recurring_templates', (req, res) => {
+    db.all('SELECT * FROM recurring_templates', [], (err2, rows) => {
         if (err2) {
-            console.error('Error fetching recurring_expenses:', err2.message);
-            res.status(500).json({ error: 'Failed to retrieve recurring expenses' });
+            console.error('Error fetching recurring_templates:', err2.message);
+            res.status(500).json({ error: 'Failed to retrieve Recurring Templates' });
         } else {
             res.json(rows);
         }
     });
 });
-apiRouter.get('/recurring_expenses_related_transactions/:id', (req, res) => {
+apiRouter.get('/recurring_template_related_transactions/:id', (req, res) => {
     const { id } = req.params;
-    db.all('SELECT * FROM expense_transactions WHERE recurring_expense_id = ?', [id], (err2, rows) => {
+    db.all('SELECT * FROM expense_transactions WHERE recurring_template_id = ?', [id], (err2, rows) => {
         if (err2) {
             console.error('Error fetching related transactions:', err2.message);
             res.status(500).json({ error: 'Failed to retrieve related transactions' });
@@ -446,7 +446,7 @@ apiRouter.get('/recurring_expenses_related_transactions/:id', (req, res) => {
         }
     });
 });
-apiRouter.post('/recurring_expenses', (req, res) => {
+apiRouter.post('/recurring_templates', (req, res) => {
     const {
         name,
         projected_amount,
@@ -462,7 +462,7 @@ apiRouter.post('/recurring_expenses', (req, res) => {
     const userId = req.user.userId;
 
     const sql = `
-        INSERT INTO recurring_expenses
+        INSERT INTO recurring_templates
         (name, projected_amount, notes, merchant, projected_category_id, projected_payment_method_id, frequency, interval, start_date, end_date, next_run_date, created_by)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
@@ -487,16 +487,16 @@ apiRouter.post('/recurring_expenses', (req, res) => {
         ],
         function (insertErr) {
             if (insertErr) {
-                console.error('Error creating recurring expense:', insertErr.message);
-                res.status(500).json({ error: 'Failed to create recurring expense' });
+                console.error('Error creating Recurring Template:', insertErr.message);
+                res.status(500).json({ error: 'Failed to create Recurring Template' });
             } else {
-                res.status(201).json({ message: 'Recurring expense created', id: this.lastID });
+                res.status(201).json({ message: 'Recurring Template created', id: this.lastID });
             }
         }
     );
 });
 
-apiRouter.put('/recurring_expenses/:id', (req, res) => {
+apiRouter.put('/recurring_templates/:id', (req, res) => {
     const { id } = req.params;
     const {
         name,
@@ -513,7 +513,7 @@ apiRouter.put('/recurring_expenses/:id', (req, res) => {
     const userId = req.user.userId;
 
     const sql = `
-        UPDATE recurring_expenses
+        UPDATE recurring_templates
         SET name = ?, projected_amount = ?, notes = ?, merchant = ?, projected_category_id = ?, projected_payment_method_id = ?,
             frequency = ?, interval = ?, start_date = ?, end_date = ?, modified_at = CURRENT_TIMESTAMP, modified_by = ?
         WHERE id = ?
@@ -536,36 +536,36 @@ apiRouter.put('/recurring_expenses/:id', (req, res) => {
         ],
         function (updateErr) {
             if (updateErr) {
-                console.error('Error updating recurring expense:', updateErr.message);
-                res.status(500).json({ error: 'Failed to update recurring expense' });
+                console.error('Error updating Recurring Template:', updateErr.message);
+                res.status(500).json({ error: 'Failed to update Recurring Template' });
             } else if (this.changes === 0) {
-                res.status(404).json({ error: 'Recurring expense not found' });
+                res.status(404).json({ error: 'Recurring Template not found' });
             } else {
-                res.json({ message: 'Recurring expense updated', changes: this.changes });
+                res.json({ message: 'Recurring Template updated', changes: this.changes });
             }
         }
     );
 });
 
-apiRouter.delete('/recurring_expenses/:id', (req, res) => {
-    const { id } = req.params;
+// apiRouter.delete('/recurring_templates/:id', (req, res) => {
+//     const { id } = req.params;
 
-    const sql = 'DELETE FROM recurring_expenses WHERE id = ?';
+//     const sql = 'DELETE FROM recurring_templates WHERE id = ?';
 
-    db.run(sql, [id], function (deleteErr) {
-        if (deleteErr) {
-            console.error('Error deleting recurring expense:', deleteErr.message);
-            res.status(500).json({ error: 'Failed to delete recurring expense' });
-        } else if (this.changes === 0) {
-            res.status(404).json({ error: 'Recurring expense not found' });
-        } else {
-            res.json({ message: 'Recurring expense deleted' });
-        }
-    });
-});
+//     db.run(sql, [id], function (deleteErr) {
+//         if (deleteErr) {
+//             console.error('Error deleting Recurring Template:', deleteErr.message);
+//             res.status(500).json({ error: 'Failed to delete Recurring Template' });
+//         } else if (this.changes === 0) {
+//             res.status(404).json({ error: 'Recurring Template not found' });
+//         } else {
+//             res.json({ message: 'Recurring Template deleted' });
+//         }
+//     });
+// });
 
-// Manually trigger application of recurring expenses up to a given date (defaults to today)
-apiRouter.post('/recurring_expenses/apply', (req, res) => {
+// Manually trigger application of Recurring Templates up to a given date (defaults to today)
+apiRouter.post('/recurring_templates/apply', (req, res) => {
     const { upToDate } = req.body || {};
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -573,11 +573,11 @@ apiRouter.post('/recurring_expenses/apply', (req, res) => {
     const dd = String(today.getDate()).padStart(2, '0');
     const target = upToDate || `${yyyy}-${mm}-${dd}`;
 
-    applyRecurringExpenses(target, (err) => {
+    applyRecurringTemplates(target, (err) => {
         if (err) {
-            return res.status(500).json({ error: 'Failed to apply recurring expenses' });
+            return res.status(500).json({ error: 'Failed to apply Recurring Templates' });
         }
-        res.json({ message: 'Recurring expenses applied', upToDate: target });
+        res.json({ message: 'Recurring Templates applied', upToDate: target });
     });
 });
 

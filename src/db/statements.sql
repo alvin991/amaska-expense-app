@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS expense_transactions (
     merchant VARCHAR(100),
     projected_payment_method_id INTEGER, -- planned payment method at generation time
     payment_method_id INTEGER,
-    recurring_expense_id INTEGER,
+    recurring_template_id INTEGER,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_by INTEGER,
     modified_at TIMESTAMP,
@@ -74,13 +74,12 @@ CREATE TABLE IF NOT EXISTS expense_transactions (
     FOREIGN KEY (payment_method_id) REFERENCES payment_methods(id),
     FOREIGN KEY (projected_category_id) REFERENCES expense_categories(id),
     FOREIGN KEY (projected_payment_method_id) REFERENCES payment_methods(id),
-    FOREIGN KEY (recurring_expense_id) REFERENCES recurring_expenses(id) ON DELETE SET NULL,
+    FOREIGN KEY (recurring_template_id) REFERENCES recurring_templates(id) ON DELETE SET NULL,
     FOREIGN KEY (created_by) REFERENCES users(id),
     FOREIGN KEY (modified_by) REFERENCES users(id)
 );
 
--- Recurring expenses: template of future transactions
-CREATE TABLE IF NOT EXISTS recurring_expenses (
+CREATE TABLE IF NOT EXISTS recurring_templates (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name VARCHAR(100) NOT NULL,
     enabled BOOLEAN NOT NULL DEFAULT 1,

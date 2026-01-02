@@ -1,7 +1,7 @@
-import DataTableHeader from './DataTableHeader.jsx';
-import RecurringExpensesTable from './RecurringExpensesTable';
+import DataTableHeader from './DataTableHeader.js';
+import RecurringTemplatesTable from './RecurringTemplatesTable.js';
 
-interface RecurringExpensesProps {
+interface RecurringTemplatesProps {
     title: string;
     onSearchChange?: (value: string) => void;
     placeholder?: string;
@@ -11,7 +11,7 @@ interface RecurringExpensesProps {
     handleRowDoubleClick: (rowData: any) => void;
 }
 
-function RecurringExpensesTab({title, onSearchChange, placeholder, onNewClick, newLabel, filteredTransactions, handleRowDoubleClick}: RecurringExpensesProps) {
+function RecurringTemplatesTab({title, onSearchChange, placeholder, onNewClick, newLabel, filteredTransactions, handleRowDoubleClick}: RecurringTemplatesProps) {
     return (
         <>
             <DataTableHeader
@@ -21,7 +21,7 @@ function RecurringExpensesTab({title, onSearchChange, placeholder, onNewClick, n
                 onNewClick={onNewClick}
                 newLabel={newLabel}
             />
-            <RecurringExpensesTable
+            <RecurringTemplatesTable
                 data={filteredTransactions}
                 onRowDoubleClick={handleRowDoubleClick}
             />
@@ -29,4 +29,4 @@ function RecurringExpensesTab({title, onSearchChange, placeholder, onNewClick, n
     );
 }
 
-export default RecurringExpensesTab;
+export default RecurringTemplatesTab;

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { Form, Container, Button, Row, Col, InputGroup } from 'react-bootstrap';
-import { saveRecurringExpense } from '../services/recurringExpensesService';
+import { saveRecurringTemplate } from '../services/recurringTemplatesService';
 import type { RecurringFrequency } from '../types/expenses';
 
 interface PaymentMethod {
@@ -39,25 +39,25 @@ interface RecurringErrors {
   start_date?: string;
 }
 
-interface RecurringExpenseEntryPageProps {
+interface RecurringTemplateEntryPageProps {
   template?: any;
   paymentMethods?: PaymentMethod[];
   categories?: Category[];
   onHide?: () => void;
-  refreshRecurringExpenses?: () => Promise<void>;
+  refreshRecurringTemplates?: () => Promise<void>;
   relatedCount?: number;
   onViewRelated?: () => void;
 }
 
-function RecurringExpenseEntryPage({
+function RecurringTemplateEntryPage({
   template = {},
   paymentMethods = [],
   categories = [],
   onHide,
-  refreshRecurringExpenses,
+  refreshRecurringTemplates,
     relatedCount,
     onViewRelated,
-}: RecurringExpenseEntryPageProps) {
+}: RecurringTemplateEntryPageProps) {
   const [formData, setFormData] = useState<RecurringFormData>({
     name: '',
     amount: '',
@@ -212,8 +212,8 @@ function RecurringExpenseEntryPage({
     };
 
     try {
-      await saveRecurringExpense(payload);
-      await refreshRecurringExpenses?.();
+      await saveRecurringTemplate(payload);
+      await refreshRecurringTemplates?.();
       onHide?.();
     } catch (err) {
       console.error('Error saving recurring expense:', err);
@@ -416,4 +416,4 @@ function RecurringExpenseEntryPage({
   );
 }
 
-export default RecurringExpenseEntryPage;
+export default RecurringTemplateEntryPage;

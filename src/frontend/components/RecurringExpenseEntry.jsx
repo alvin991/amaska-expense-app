@@ -1,10 +1,10 @@
-// src/frontend/components/RecurringExpenseEntryPage.jsx
+// src/frontend/components/RecurringTemplateEntryPage.jsx
 import { useState, useEffect, useRef } from 'react';
 import { Form, Container, Button, Row, Col } from 'react-bootstrap';
 import ExpenseFormCoreFields from './ExpenseFormCoreFields';
 import axios from 'axios';
 
-function RecurringExpenseEntryPage({
+function RecurringTemplateEntryPage({
   template = {},
   paymentMethods = [],
   categories = [],
@@ -143,9 +143,9 @@ function RecurringExpenseEntryPage({
 
     try {
       if (template.id) {
-        await axios.put(`/api/recurring_expenses/${template.id}`, payload);
+        await axios.put(`/api/recurring_templates/${template.id}`, payload);
       } else {
-        await axios.post('/api/recurring_expenses', payload);
+        await axios.post('/api/recurring_templates', payload);
       }
       await refreshRecurring?.();
       onHide?.();
@@ -225,4 +225,4 @@ function RecurringExpenseEntryPage({
   );
 }
 
-export default RecurringExpenseEntryPage;
+export default RecurringTemplateEntryPage;

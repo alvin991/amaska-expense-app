@@ -62,7 +62,7 @@ function MyLayout() {
     const refreshTransactions      = async () => { if (refreshTransactionsFn) { await refreshTransactionsFn(); } };
     const refreshCategories        = async () => { await fetchCategories(); };
     const refreshPaymentMethods    = async () => { await fetchPaymentMethods(); };
-    const refreshRecurringExpenses = async () => { if (refreshRecurringFn) { await refreshRecurringFn(); } };
+    const refreshRecurringTemplates = async () => { if (refreshRecurringFn) { await refreshRecurringFn(); } };
 
     useEffect(() => {
         const fetchAllData = async () => {
@@ -131,7 +131,7 @@ function MyLayout() {
                 refreshPaymentMethods={refreshPaymentMethods}
                 onHide={handleHideModal}
                 isRecurring={isRecurringTab}
-                refreshRecurringExpenses={refreshRecurringExpenses}
+                refreshRecurringTemplates={refreshRecurringTemplates}
             />
         </div>
     );

@@ -18,7 +18,7 @@ export const DEFAULT_TRANSACTION = {
   payment_method_name: '',
 };
 
-export const DEFAULT_RECURRING_EXPENSE = {
+export const DEFAULT_RECURRING_TEMPLATE = {
   id: null,
   name: '',
   projected_amount: 0.0,

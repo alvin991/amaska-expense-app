@@ -14,7 +14,7 @@ function TransactionsController({ onOpenModal, registerRefreshTransactions }) {
     setTransactions,
     setCategoriesUsed,
     setSelectedTransaction,
-    setSelectedRecurringExpense,
+    setSelectedRecurringTemplate,
   } = useExpenseStore();
 
   const [transactionSearchQuery, setTransactionSearchQuery] = useState('');
@@ -147,7 +147,7 @@ function TransactionsController({ onOpenModal, registerRefreshTransactions }) {
       ? transactions.find((t) => t.transaction_id === rowId)
       : null;
     setSelectedTransaction(transaction || null);
-    setSelectedRecurringExpense(null);
+    setSelectedRecurringTemplate(null);
     if (onOpenModal) {
       onOpenModal();
     }
@@ -155,7 +155,7 @@ function TransactionsController({ onOpenModal, registerRefreshTransactions }) {
 
   const handleNewTransactionClick = () => {
     setSelectedTransaction(null);
-    setSelectedRecurringExpense(null);
+    setSelectedRecurringTemplate(null);
     if (onOpenModal) {
       onOpenModal();
     }

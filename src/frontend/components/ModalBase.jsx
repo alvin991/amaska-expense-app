@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import TransactionEntryPage from './TransactionEntryPage';
-import RecurringExpenseEntryPage from './RecurringExpenseEntryPage';
-import RecurringExpenseRelatedTransactionsPage from './RecurringExpenseRelatedTransactionsPage';
+import RecurringTemplateEntryPage from './RecurringTemplateEntryPage';
+import RecurringTemplateRelatedTransactionsPage from './RecurringTemplateRelatedTransactionsPage';
 import CategoryListPage from './CategoryListPage';
 import CategoryDetailsPage from './CategoryDetailsPage';
 import IconSelectPage from './IconSelectPage';
@@ -11,7 +11,7 @@ import MyConfirmBox from "./MyConfirmBox";
 import { useModalConfirm } from '../hooks/useModalConfirm';
 import { deleteTransactionById } from '../services/transactionService';
 import { deleteCategoryById } from '../services/categoryService';
-import { DEFAULT_TRANSACTION, DEFAULT_RECURRING_EXPENSE, DEFAULT_CATEGORY } from '../constants/defaults';
+import { DEFAULT_TRANSACTION, DEFAULT_RECURRING_TEMPLATE, DEFAULT_CATEGORY } from '../constants/defaults';
 import useExpenseStore from '../store/useExpenseStore';
 
 const ModalBase = ({
@@ -24,7 +24,7 @@ const ModalBase = ({
   refreshTransactions,
   refreshCategories,
   refreshPaymentMethods,
-  refreshRecurringExpenses,
+  refreshRecurringTemplates,
 
   // lifecycle
   onHide,
@@ -34,8 +34,8 @@ const ModalBase = ({
     paymentMethods,
     categoriesUsed,
     selectedTransaction,
-    selectedRecurringExpense,
-    selectedRecurringExpenseRelatedTransactions,
+    selectedRecurringTemplate,
+    selectedRecurringTemplateRelatedTransactions,
     transactions,
     setSelectedTransaction,
   } = useExpenseStore();
@@ -177,16 +177,16 @@ const ModalBase = ({
         );
 
       case 'recurring': {
-        const effectiveTemplate = selectedRecurringExpense || {};
-        const relatedCount = selectedRecurringExpenseRelatedTransactions?.length ?? 0;
+        const effectiveTemplate = selectedRecurringTemplate || {};
+        const relatedCount = selectedRecurringTemplateRelatedTransactions?.length ?? 0;
 
         return (
-          <RecurringExpenseEntryPage
+          <RecurringTemplateEntryPage
             template={effectiveTemplate}
             paymentMethods={paymentMethods}
             categories={categories}
             onHide={actuallyHide}
-            refreshRecurringExpenses={refreshRecurringExpenses}
+            refreshRecurringTemplates={refreshRecurringTemplates}
             relatedCount={relatedCount}
             onViewRelated={() => {
               if (relatedCount === 0) return;
@@ -199,9 +199,9 @@ const ModalBase = ({
       case 'recurringRelatedTransactions': {
         const recurringId = currentParams?.id;
         return (
-          <RecurringExpenseRelatedTransactionsPage
-            recurringExpenseId={recurringId}
-            transactions={selectedRecurringExpenseRelatedTransactions}
+          <RecurringTemplateRelatedTransactionsPage
+            recurringTemplateId={recurringId}
+            transactions={selectedRecurringTemplateRelatedTransactions}
             navigation={navigation}
             onRowDoubleClick={(tx) => {
               if (!tx) return;
