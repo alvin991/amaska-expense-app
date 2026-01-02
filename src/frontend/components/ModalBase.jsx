@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import TransactionEntryPage from './TransactionEntryPage';
+import RecurringExpenseEntryPage from './RecurringExpenseEntryPage';
+import RecurringExpenseRelatedTransactionsPage from './RecurringExpenseRelatedTransactionsPage';
 import CategoryListPage from './CategoryListPage';
 import CategoryDetailsPage from './CategoryDetailsPage';
 import IconSelectPage from './IconSelectPage';
@@ -9,39 +11,57 @@ import MyConfirmBox from "./MyConfirmBox";
 import { useModalConfirm } from '../hooks/useModalConfirm';
 import { deleteTransactionById } from '../services/transactionService';
 import { deleteCategoryById } from '../services/categoryService';
-import { DEFAULT_TRANSACTION, DEFAULT_CATEGORY } from '../constants/defaults';
-
-const ROOT_PAGE = 'transaction';
+import { DEFAULT_TRANSACTION, DEFAULT_RECURRING_EXPENSE, DEFAULT_CATEGORY } from '../constants/defaults';
+import useExpenseStore from '../store/useExpenseStore';
 
 const ModalBase = ({
-  paymentMethods = [],
-  categories = [],
-  propTransaction = DEFAULT_TRANSACTION,
-  categoriesUsed = [],
+  // visibility / mode
   isOpen = false,
+  rootPage = 'transaction',
+  isRecurring,
+
+  // refresh callbacks
   refreshTransactions,
   refreshCategories,
   refreshPaymentMethods,
+  refreshRecurringExpenses,
+
+  // lifecycle
   onHide,
 }) => {
-  const effectiveTransaction = propTransaction ?? DEFAULT_TRANSACTION;
+  const {
+    categories,
+    paymentMethods,
+    categoriesUsed,
+    selectedTransaction,
+    selectedRecurringExpense,
+    selectedRecurringExpenseRelatedTransactions,
+    transactions,
+    setSelectedTransaction,
+  } = useExpenseStore();
+
+  const effectiveRootPage = isRecurring ? 'recurring' : rootPage;
+  const effectiveTransaction = selectedTransaction ?? DEFAULT_TRANSACTION;
   const [transactionOriginal, setTransactionOriginal] = useState(effectiveTransaction);
   const [transactionDraft, setTransactionDraft] = useState(effectiveTransaction);
   const [propCategory, setPropCategory] = useState(DEFAULT_CATEGORY);
   const [isDirty, setIsDirty] = useState(false);
-  const [navStack, setNavStack] = useState([{ page: ROOT_PAGE, params: null }]);
+  const [navStack, setNavStack] = useState([{ page: effectiveRootPage, params: null }]);
   
   const currentEntry = navStack[navStack.length - 1];
-  const currentPage = currentEntry?.page ?? ROOT_PAGE;
+  const currentPage = currentEntry?.page ?? rootPage;
   const currentParams = currentEntry?.params ?? null;
   
   useEffect(() => {
-    const next = propTransaction ?? DEFAULT_TRANSACTION;
+    const next = selectedTransaction ?? DEFAULT_TRANSACTION;
     setTransactionOriginal(next);
     setTransactionDraft(next);
     setIsDirty(false);
-    setNavStack([{ page: ROOT_PAGE, params: null }]);
-  }, [propTransaction]);
+  }, [selectedTransaction]);
+
+  useEffect(() => {
+    setNavStack([{ page: isRecurring ? 'recurring' : rootPage, params: null }]);
+  }, [rootPage, isRecurring]);
 
   // recompute isDirty whenever draft changes
   useEffect(() => {
@@ -78,7 +98,7 @@ const ModalBase = ({
   };
 
   const resetToRoot = () => {
-    setNavStack([{ page: ROOT_PAGE, params: null }]);
+    setNavStack([{ page: effectiveRootPage, params: null }]);
   };
 
   const navigation = {
@@ -94,6 +114,8 @@ const ModalBase = ({
     switch (currentPage) {
       case 'transaction':
         return 'Transaction';
+      case 'recurring':
+        return 'Recurring Expense';
       case 'categoryList':
         return 'Select Category';
       case 'categoryDetails':
@@ -123,7 +145,7 @@ const ModalBase = ({
     setTransactionDraft(DEFAULT_TRANSACTION);
     setTransactionOriginal(DEFAULT_TRANSACTION);
     setIsDirty(false);
-    setNavStack([{ page: ROOT_PAGE, params: null }]);
+    setNavStack([{ page: effectiveRootPage, params: null }]);
     onHide();
   };
 
@@ -153,6 +175,46 @@ const ModalBase = ({
             onDelete={confirm.openDeleteTransaction}
           />
         );
+
+      case 'recurring': {
+        const effectiveTemplate = selectedRecurringExpense || {};
+        const relatedCount = selectedRecurringExpenseRelatedTransactions?.length ?? 0;
+
+        return (
+          <RecurringExpenseEntryPage
+            template={effectiveTemplate}
+            paymentMethods={paymentMethods}
+            categories={categories}
+            onHide={actuallyHide}
+            refreshRecurringExpenses={refreshRecurringExpenses}
+            relatedCount={relatedCount}
+            onViewRelated={() => {
+              if (relatedCount === 0) return;
+              navigation.navigate('recurringRelatedTransactions', { id: effectiveTemplate.id });
+            }}
+          />
+        );
+      }
+
+      case 'recurringRelatedTransactions': {
+        const recurringId = currentParams?.id;
+        return (
+          <RecurringExpenseRelatedTransactionsPage
+            recurringExpenseId={recurringId}
+            transactions={selectedRecurringExpenseRelatedTransactions}
+            navigation={navigation}
+            onRowDoubleClick={(tx) => {
+              if (!tx) return;
+              const normalized = {
+                ...tx,
+                transaction_id: tx.transaction_id || tx.id,
+              };
+              setSelectedTransaction(normalized);
+              navigation.navigate('transaction');
+            }}
+          />
+        );
+      }
 
       case 'categoryList':
         return (
@@ -236,7 +298,7 @@ const ModalBase = ({
         >
           {/* Left (Back) */}
           <div className="d-flex align-items-center" style={{ minWidth: 100 }}>
-            {currentPage !== 'transaction' && (
+            {currentPage !== rootPage && (
               <button
                 type="button"
                 className="btn btn-secondary btn-ms"

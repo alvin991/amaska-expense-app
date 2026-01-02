@@ -20,3 +20,8 @@ export async function saveTransaction(transaction) {
 export async function deleteTransactionById(id) {
   await axios.delete(`/api/transactions/${id}`);
 }
+
+export async function getRecurringExpenseRelatedTransactions(id) {
+  const res = await axios.get(`/api/recurring_expenses_related_transactions/${id}`);
+  return res.data;
+}

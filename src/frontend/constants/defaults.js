@@ -5,15 +5,30 @@ import { formatLocalDate } from '../utils/dateUtils';
 // Transaction
 export const DEFAULT_TRANSACTION = {
   transaction_id: null,
+  projected_amount: 0.0,
   amount: 0.0,
   merchant: '',
-  category: '',
+  projected_category_id: '',
+  projected_payment_method_id: '',
   date: formatLocalDate(new Date()),   // local yyyy-mm-dd
   notes: '',
   category_id: '',
   category_name: '',
   payment_method_id: '',
   payment_method_name: '',
+};
+
+export const DEFAULT_RECURRING_EXPENSE = {
+  id: null,
+  name: '',
+  projected_amount: 0.0,
+  merchant: '',
+  projected_category_id: '',
+  projected_payment_method_id: '',
+  start_date: formatLocalDate(new Date()), // local yyyy-mm-dd
+  frequency: 'monthly',
+  interval: 1,
+  notes: '',
 };
 
 // Category

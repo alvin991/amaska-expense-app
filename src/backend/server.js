@@ -435,7 +435,17 @@ apiRouter.get('/recurring_expenses', (req, res) => {
         }
     });
 });
-
+apiRouter.get('/recurring_expenses_related_transactions/:id', (req, res) => {
+    const { id } = req.params;
+    db.all('SELECT * FROM expense_transactions WHERE recurring_expense_id = ?', [id], (err2, rows) => {
+        if (err2) {
+            console.error('Error fetching related transactions:', err2.message);
+            res.status(500).json({ error: 'Failed to retrieve related transactions' });
+        } else {
+            res.json(rows);
+        }
+    });
+});
 apiRouter.post('/recurring_expenses', (req, res) => {
     const {
         name,
@@ -499,17 +509,15 @@ apiRouter.put('/recurring_expenses/:id', (req, res) => {
         interval = 1,
         start_date,
         end_date,
-        next_run_date,
     } = req.body;
     const userId = req.user.userId;
 
     const sql = `
         UPDATE recurring_expenses
         SET name = ?, projected_amount = ?, notes = ?, merchant = ?, projected_category_id = ?, projected_payment_method_id = ?,
-            frequency = ?, interval = ?, start_date = ?, end_date = ?, next_run_date = ?, modified_at = CURRENT_TIMESTAMP, modified_by = ?
+            frequency = ?, interval = ?, start_date = ?, end_date = ?, modified_at = CURRENT_TIMESTAMP, modified_by = ?
         WHERE id = ?
     `;
-
     db.run(
         sql,
         [
@@ -523,8 +531,8 @@ apiRouter.put('/recurring_expenses/:id', (req, res) => {
             interval,
             start_date,
             end_date || null,
-            next_run_date || start_date,
             userId,
+            id
         ],
         function (updateErr) {
             if (updateErr) {
