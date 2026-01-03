@@ -4,6 +4,7 @@ import { Form, Container, Button, Row, Col, InputGroup } from 'react-bootstrap';
 import { saveRecurringTemplate } from '../services/recurringTemplatesService';
 import type { RecurringFrequency } from '../types/expenses';
 import { RECURRING_FREQUENCIES } from '../types/expenses';
+import './RecurringTemplateEntryPage.css';
 
 interface PaymentMethod {
   id: number;
@@ -395,6 +396,7 @@ function RecurringTemplateEntryPage({
             label="Enabled"
             checked={enabled}
             onChange={(e) => setEnabled(e.target.checked)}
+            className="recurring-enabled-switch"
           />
 
           <Button
