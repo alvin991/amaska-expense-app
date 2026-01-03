@@ -25,6 +25,7 @@ interface RecurringFormData {
   start_date: string;
   end_date: string;
   notes: string;
+  enabled: boolean;
 }
 
 interface RecurringSchedule {
@@ -69,6 +70,7 @@ function RecurringTemplateEntryPage({
     start_date: '',
     end_date: '',
     notes: '',
+    enabled: true,
   });
 
   const [schedule, setSchedule] = useState<RecurringSchedule>({
@@ -107,6 +109,7 @@ function RecurringTemplateEntryPage({
         template.start_date || new Date().toISOString().split('T')[0],
       end_date: template.end_date || '',
       notes: template.notes ?? '',
+      enabled: template.enabled ?? true,
     });
 
     setSchedule({
@@ -210,7 +213,7 @@ function RecurringTemplateEntryPage({
       interval: Number(schedule.interval) || 1,
       start_date: formData.start_date,
       end_date: formData.end_date || null,
-      enabled,
+      enabled: enabled,
     };
 
     try {

@@ -512,13 +512,14 @@ apiRouter.put('/recurring_templates/:id', (req, res) => {
         interval = 1,
         start_date,
         end_date,
+        enabled,
     } = req.body;
     const userId = req.user.userId;
 
     const sql = `
         UPDATE recurring_templates
         SET name = ?, projected_amount = ?, notes = ?, merchant = ?, projected_category_id = ?, projected_payment_method_id = ?,
-            frequency = ?, interval = ?, start_date = ?, end_date = ?, modified_at = CURRENT_TIMESTAMP, modified_by = ?
+            frequency = ?, interval = ?, start_date = ?, end_date = ?, enabled = ?, modified_at = CURRENT_TIMESTAMP, modified_by = ?
         WHERE id = ?
     `;
     db.run(
@@ -534,6 +535,7 @@ apiRouter.put('/recurring_templates/:id', (req, res) => {
             interval,
             start_date,
             end_date || null,
+            enabled ? 1 : 0,
             userId,
             id
         ],

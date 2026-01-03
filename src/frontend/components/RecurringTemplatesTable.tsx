@@ -9,6 +9,7 @@ interface RecurringTemplate {
   start_date: string;
   end_date?: string | null;
   next_run_date?: string;
+  enabled?: boolean;
 }
 
 interface RecurringTemplatesTableProps {
@@ -48,6 +49,7 @@ function RecurringTemplatesTable({ data, onRowDoubleClick }: RecurringTemplatesT
       >
         <thead>
           <tr>
+            <th style={{ width: '80px' }}>Enabled</th>
             <th style={{ width: '220px' }}>Name</th>
             <th style={{ width: '200px' }}>Merchant</th>
             <th style={{ width: '120px' }}>Interval</th>
@@ -66,6 +68,11 @@ function RecurringTemplatesTable({ data, onRowDoubleClick }: RecurringTemplatesT
                 }
               }}
             >
+              <td className="text-center">
+                <span className={re.enabled ? 'text-success' : 'text-danger'}>
+                  {re.enabled ? '✓' : '✗'}
+                </span>
+              </td>
               <td>{re.name}</td>
               <td>{re.merchant}</td>
               <td>{formatRecurrence(re.interval, re.frequency)}</td>
