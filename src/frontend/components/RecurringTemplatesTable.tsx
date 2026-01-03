@@ -18,7 +18,7 @@ interface RecurringTemplatesTableProps {
 
 function RecurringTemplatesTable({ data, onRowDoubleClick }: RecurringTemplatesTableProps) {
   if (!data || data.length === 0) {
-    return <p>No recurring expenses to display.</p>;
+    return <p>No Recurring Templates to display.</p>;
   }
 
   return (

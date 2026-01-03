@@ -105,7 +105,7 @@ function MyLayout() {
                 }}
                 tabs={[
                     { key: '/expenses-main', title: 'Daily Expenses' },
-                    { key: '/expenses-second', title: 'Recurring Expenses' },
+                    { key: '/expenses-second', title: 'Recurring Templates' },
                 ]}
             />
 

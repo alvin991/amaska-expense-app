@@ -1,6 +1,3 @@
-////javascript
-// filepath: c:\alvin\code\react\amaska-expense-app\src\frontend\components\dashboard\DashboardHeader.jsx
-// ...existing code...
 import { useState } from 'react';
 import MonthPickerPanel from '../MonthPickerPanel.jsx';
 

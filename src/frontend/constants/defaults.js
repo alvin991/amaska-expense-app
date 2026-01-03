@@ -1,5 +1,3 @@
-////jsx
-// filepath: c:\alvin\code\react\amaska-expense-app\src\frontend\constants\defaults.js
 import { formatLocalDate } from '../utils/dateUtils';
 
 // Transaction

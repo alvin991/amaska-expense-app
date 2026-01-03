@@ -1,6 +1,3 @@
-////javascript
-// filepath: c:\alvin\code\react\amaska-expense-app\src\frontend\utils\formValidation.js
-
 // Validate transaction form data (TransactionEntryPage)
 export function validateTransactionForm(formData) {
   const errors = {};

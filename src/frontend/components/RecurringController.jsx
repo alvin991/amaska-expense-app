@@ -77,11 +77,11 @@ function RecurringController({ onOpenModal, registerRefreshRecurring }) {
 
   return (
     <RecurringTemplatesTab
-      title="Recurring Expenses"
+      title="Recurring Templates"
       onSearchChange={setSearchQuery}
       placeholder="Search Name, Merchant"
       onNewClick={handleNewRecurringClick}
-      newLabel="New Recurring Expense"
+      newLabel="New Recurring Template"
       filteredTransactions={filteredRecurringTemplates}
       handleRowDoubleClick={handleRowDoubleClick}
     />

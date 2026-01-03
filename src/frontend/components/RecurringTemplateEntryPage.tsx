@@ -217,7 +217,7 @@ function RecurringTemplateEntryPage({
       await refreshRecurringTemplates?.();
       onHide?.();
     } catch (err) {
-      console.error('Error saving recurring expense:', err);
+      console.error('Error saving Recurring Template:', err);
     }
   };
 
@@ -410,7 +410,7 @@ function RecurringTemplateEntryPage({
 
         <div className="d-grid gap-2 mb-3">
           <Button variant="primary" type="submit">
-            {template.id ? 'Update Recurring Expense' : 'Create Recurring Expense'}
+            {template.id ? 'Update Recurring Template' : 'Create Recurring Template'}
           </Button>
         </div>
       </Form>

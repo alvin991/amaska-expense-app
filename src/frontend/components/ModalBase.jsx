@@ -115,7 +115,7 @@ const ModalBase = ({
       case 'transaction':
         return 'Transaction';
       case 'recurring':
-        return 'Recurring Expense';
+        return 'Recurring Template';
       case 'categoryList':
         return 'Select Category';
       case 'categoryDetails':
