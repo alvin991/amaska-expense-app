@@ -1,6 +1,15 @@
 // Shared domain types for the expenses app
 
-export type RecurringFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
+export type RecurringFrequency = 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly';
+
+// Single source of truth for allowed recurring frequencies
+export const RECURRING_FREQUENCIES: RecurringFrequency[] = [
+  'daily',
+  'weekly',
+  'biweekly',
+  'monthly',
+  'yearly',
+];
 
 export interface RecurringTemplateInput {
   id?: number;

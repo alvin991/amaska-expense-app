@@ -88,7 +88,7 @@ CREATE TABLE IF NOT EXISTS recurring_templates (
     merchant VARCHAR(100) NOT NULL,
     projected_category_id INTEGER NOT NULL,
     projected_payment_method_id INTEGER NOT NULL,
-    frequency VARCHAR(20) NOT NULL, -- 'daily', 'weekly', 'monthly', 'yearly'
+    frequency VARCHAR(20) NOT NULL, -- 'daily', 'weekly', 'biweekly', 'monthly', 'yearly'
     interval INTEGER NOT NULL DEFAULT 1, -- every N days/weeks/months/years
     start_date DATE NOT NULL,
     end_date DATE,

@@ -137,6 +137,9 @@ function addPeriod(dateStr, frequency, interval) {
         case 'weekly':
             d.setDate(d.getDate() + 7 * interval);
             break;
+        case 'biweekly':
+            d.setDate(d.getDate() + 14 * interval);
+            break;
         case 'monthly':
             d.setMonth(d.getMonth() + interval);
             break;

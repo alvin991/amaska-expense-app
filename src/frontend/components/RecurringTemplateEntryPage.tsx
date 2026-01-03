@@ -3,6 +3,7 @@ import type { ChangeEvent, FormEvent } from 'react';
 import { Form, Container, Button, Row, Col, InputGroup } from 'react-bootstrap';
 import { saveRecurringTemplate } from '../services/recurringTemplatesService';
 import type { RecurringFrequency } from '../types/expenses';
+import { RECURRING_FREQUENCIES } from '../types/expenses';
 
 interface PaymentMethod {
   id: number;
@@ -170,7 +171,7 @@ function RecurringTemplateEntryPage({
     if (name === 'frequency') {
       setSchedule((prev) => ({
         ...prev,
-        frequency: value as Frequency,
+        frequency: value as RecurringFrequency,
       }));
     } else if (name === 'interval') {
       setSchedule((prev) => ({
@@ -327,10 +328,11 @@ function RecurringTemplateEntryPage({
                 value={schedule.frequency}
                 onChange={handleScheduleChange}
               >
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-                <option value="yearly">Yearly</option>
+                {RECURRING_FREQUENCIES.map((freq) => (
+                  <option key={freq} value={freq}>
+                    {freq.charAt(0).toUpperCase() + freq.slice(1)}
+                  </option>
+                ))}
               </Form.Select>
             </Form.Group>
           </Col>

@@ -1,5 +1,5 @@
 import { Table } from 'react-bootstrap';
-
+import { formatRecurrence } from '../utils/recurring_helper';
 interface RecurringTemplate {
   id: number;
   name: string;
@@ -21,14 +21,6 @@ function RecurringTemplatesTable({ data, onRowDoubleClick }: RecurringTemplatesT
     return <p>No recurring expenses to display.</p>;
   }
 
-  const formatIntervalFrequency = (interval: number | undefined, frequency: string) => {
-    if (!frequency) return '';
-    const freq = String(frequency).toLowerCase();
-    const n = interval || 1;
-    const unit = n === 1 ? freq : `${freq}s`;
-    return `${n} ${unit}`;
-  };
-
   return (
     <div
       className="g-0"
@@ -40,6 +32,7 @@ function RecurringTemplatesTable({ data, onRowDoubleClick }: RecurringTemplatesT
         paddingTop: '1rem',
         paddingBottom: '1rem',
         paddingLeft: '1rem',
+        paddingRight: '1rem',
         overflow: 'hidden',
       }}
     >
@@ -56,11 +49,11 @@ function RecurringTemplatesTable({ data, onRowDoubleClick }: RecurringTemplatesT
         <thead>
           <tr>
             <th style={{ width: '220px' }}>Name</th>
-            <th style={{ width: '220px' }}>Merchant</th>
-            <th style={{ width: '160px' }}>Interval</th>
-            <th style={{ width: '140px' }}>Start Date</th>
-            <th style={{ width: '140px' }}>End Date</th>
-            <th style={{ width: '140px' }}>Next Run</th>
+            <th style={{ width: '200px' }}>Merchant</th>
+            <th style={{ width: '120px' }}>Interval</th>
+            <th style={{ width: '100px' }}>Start Date</th>
+            <th style={{ width: '100px' }}>End Date</th>
+            <th style={{ width: '100px' }}>Next Run</th>
           </tr>
         </thead>
         <tbody>
@@ -75,7 +68,7 @@ function RecurringTemplatesTable({ data, onRowDoubleClick }: RecurringTemplatesT
             >
               <td>{re.name}</td>
               <td>{re.merchant}</td>
-              <td>{formatIntervalFrequency(re.interval, re.frequency)}</td>
+              <td>{formatRecurrence(re.interval, re.frequency)}</td>
               <td>{re.start_date || ''}</td>
               <td>{re.end_date || ''}</td>
               <td>{re.next_run_date || ''}</td>
