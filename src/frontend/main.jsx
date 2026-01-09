@@ -13,10 +13,11 @@ import SettingsPage from './components/SettingsPage.tsx';
 import { AuthProvider } from './AuthContext.jsx';
 import ProtectedRoute from './ProtectedRoute.jsx';
 import LoginPage from './components/LoginPage.jsx';
+import ErrorBoundary from './components/ErrorBoundary.jsx';
 import './axiosConfig.js';
 
 const router = createBrowserRouter([
-  { path: '/login', element: <LoginPage /> },
+  { path: '/login', element: <LoginPage />, errorElement: <ErrorBoundary /> },
   {
     path: '/',
     element: (
@@ -24,6 +25,7 @@ const router = createBrowserRouter([
         <App />
       </ProtectedRoute>
     ),
+    errorElement: <ErrorBoundary />,
     children: [
       { index: true, element: <TestingPage /> },
       { path: 'expenses', element: <MyLayout /> },
@@ -40,6 +42,7 @@ const router = createBrowserRouter([
         <TestingPage />
       </ProtectedRoute>
     ),
+    errorElement: <ErrorBoundary />,
   },
 ], {
   basename: import.meta.env.BASE_URL,
