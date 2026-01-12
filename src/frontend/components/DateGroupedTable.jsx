@@ -110,7 +110,9 @@ function DateGroupedTable({ data, onRowDoubleClick, className, categories = [] }
                       onRowDoubleClick?.(item.transaction_id)
                     }
                   >
-                    <td style={{ width: columnWidths.merchant }}>
+                    <td 
+                      className="text-start ps-4" 
+                      style={{ width: columnWidths.merchant }}>
                       {item.merchant}
                     </td>
                     <td style={{ width: columnWidths.category }}>
@@ -147,7 +149,9 @@ function DateGroupedTable({ data, onRowDoubleClick, className, categories = [] }
                         <span>{item.category}</span>
                       </div>
                     </td>
-                    <td style={{ width: columnWidths.paymentMethod }}>
+                    <td
+                      className="text-start ps-4" 
+                      style={{ width: columnWidths.paymentMethod }}>
                       {item.paymentMethod}
                     </td>
                     <td
