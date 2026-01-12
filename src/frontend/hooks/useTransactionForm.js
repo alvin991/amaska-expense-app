@@ -93,6 +93,13 @@ export default function useTransactionForm(transaction, onDirtyChange) {
     setFormData((prev) => ({ ...prev, paymentMethod: newId }));
   };
 
+  // Auto-focus on amount field when component mounts
+  useEffect(() => {
+    if (amountInputRef.current) {
+      amountInputRef.current.focus();
+    }
+  }, []);
+
   return {
     formData,
     setFormData,
