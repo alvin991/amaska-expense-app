@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import TransactionEntryPage from './TransactionEntryPage';
-import RecurringTemplateEntryPage from './RecurringTemplateEntryPage';
+import TransactionForm from './TransactionForm';
+import RecurringTemplateForm from './RecurringTemplateForm';
 import RecurringTemplateRelatedTransactionsPage from './RecurringTemplateRelatedTransactionsPage';
 import CategoryListPage from './CategoryListPage';
 import CategoryDetailsPage from './CategoryDetailsPage';
@@ -42,8 +42,7 @@ const ModalBase = ({
 
   const effectiveRootPage = isRecurring ? 'recurring' : rootPage;
   const effectiveTransaction = selectedTransaction ?? DEFAULT_TRANSACTION;
-  const [transactionOriginal, setTransactionOriginal] = useState(effectiveTransaction);
-  const [transactionDraft, setTransactionDraft] = useState(effectiveTransaction);
+  // console.log(`effectiveTransaction:`, effectiveTransaction);
   const [propCategory, setPropCategory] = useState(DEFAULT_CATEGORY);
   const [isDirty, setIsDirty] = useState(false);
   const [navStack, setNavStack] = useState([{ page: effectiveRootPage, params: null }]);
@@ -51,25 +50,11 @@ const ModalBase = ({
   const currentEntry = navStack[navStack.length - 1];
   const currentPage = currentEntry?.page ?? rootPage;
   const currentParams = currentEntry?.params ?? null;
-  
-  useEffect(() => {
-    const next = selectedTransaction ?? DEFAULT_TRANSACTION;
-    setTransactionOriginal(next);
-    setTransactionDraft(next);
-    setIsDirty(false);
-  }, [selectedTransaction]);
+  const canGoBack = navStack.length > 1;
 
   useEffect(() => {
     setNavStack([{ page: isRecurring ? 'recurring' : rootPage, params: null }]);
   }, [rootPage, isRecurring]);
-
-  // recompute isDirty whenever draft changes
-  useEffect(() => {
-    const o = transactionOriginal;
-    const d = transactionDraft;
-    const dirty = JSON.stringify(o) !== JSON.stringify(d);
-    setIsDirty(dirty);
-  }, [transactionOriginal, transactionDraft]);
 
   // --- NAVIGATION API (CONTAINER RESPONSIBILITY) -----------------------------
   const navigate = (page, params = null) => {
@@ -106,7 +91,7 @@ const ModalBase = ({
     back,
     resetToRoot,
     currentPage,
-    canGoBack: navStack.length > 1,
+    canGoBack,
   };
 
   // --- TITLE (optional, based on page) --------------------------------------
@@ -130,8 +115,8 @@ const ModalBase = ({
   };
 
   const deleteTransaction = async () => {
-    if (!transactionDraft?.transaction_id) return;
-    await deleteTransactionById(transactionDraft.transaction_id);
+    if (!effectiveTransaction?.transaction_id) return;
+    await deleteTransactionById(effectiveTransaction.transaction_id);
     if (refreshTransactions) await refreshTransactions();
   };
 
@@ -142,9 +127,6 @@ const ModalBase = ({
   };
 
   const actuallyHide = () => {
-    setTransactionDraft(DEFAULT_TRANSACTION);
-    setTransactionOriginal(DEFAULT_TRANSACTION);
-    setIsDirty(false);
     setNavStack([{ page: effectiveRootPage, params: null }]);
     onHide();
   };
@@ -153,7 +135,7 @@ const ModalBase = ({
   const confirm = useModalConfirm({
     deleteTransaction,
     deleteCategory,
-    onHide: actuallyHide,      // use wrapper, not raw onHide
+    onHide: actuallyHide,
     navigationBack: back,
     clearDirty: () => setIsDirty(false),
   });
@@ -162,29 +144,32 @@ const ModalBase = ({
   const renderPageContent = () => {
     switch (currentPage) {
       case 'transaction':
+        // console.log('Rendering TransactionForm with:', effectiveTransaction);
         return (
-          <TransactionEntryPage
-            transaction={transactionDraft}
+          <TransactionForm
+            transaction={effectiveTransaction}
             paymentMethods={paymentMethods}
             categories={categories}
             navigation={navigation}
+            currentParams={currentParams}
             refreshTransactions={refreshTransactions}
             onHide={actuallyHide}
-            onChangeDraft={setTransactionDraft}
-            isDirty={isDirty}
             onDelete={confirm.openDeleteTransaction}
+            onDirtyChange={setIsDirty}
           />
         );
 
       case 'recurring': {
-        const effectiveTemplate = selectedRecurringTemplate || {};
+        const effectiveTemplate = selectedRecurringTemplate || DEFAULT_RECURRING_TEMPLATE;
         const relatedCount = selectedRecurringTemplateRelatedTransactions?.length ?? 0;
 
         return (
-          <RecurringTemplateEntryPage
+          <RecurringTemplateForm
             template={effectiveTemplate}
             paymentMethods={paymentMethods}
             categories={categories}
+            navigation={navigation}
+            currentParams={currentParams}
             onHide={actuallyHide}
             refreshRecurringTemplates={refreshRecurringTemplates}
             relatedCount={relatedCount}
@@ -192,6 +177,7 @@ const ModalBase = ({
               if (relatedCount === 0) return;
               navigation.navigate('recurringRelatedTransactions', { id: effectiveTemplate.id });
             }}
+            onDirtyChange={setIsDirty}
           />
         );
       }
@@ -216,21 +202,38 @@ const ModalBase = ({
         );
       }
 
-      case 'categoryList':
+      case 'categoryList': {
+        // Determine which item to use based on whether we're in transaction or recurring mode
+        const selectedItem = effectiveRootPage === 'recurring' 
+          ? (selectedRecurringTemplate || DEFAULT_RECURRING_TEMPLATE)
+          : effectiveTransaction;
+        
+        // Handle category selection by updating navigation params
+        const handleCategorySelected = (categoryId) => {
+          console.log('ModalBase - Category selected:', categoryId);
+          // Navigate back to the form with selectedCategoryId in params
+          setNavStack((prev) => {
+            const newStack = prev.slice(0, -1); // Remove categoryList page
+            const formPage = newStack[newStack.length - 1];
+            // Update the form page params with selectedCategoryId
+            newStack[newStack.length - 1] = {
+              ...formPage,
+              params: { ...formPage.params, selectedCategoryId: categoryId }
+            };
+            return newStack;
+          });
+        };
+        
         return (
           <CategoryListPage
             categories={categories}
             categoriesUsed={categoriesUsed}
-            transaction={transactionDraft}
+            selectedItem={selectedItem}
             navigation={navigation}
-            onCategorySelected={(categoryId) => {
-              setTransactionDraft(prev => ({
-                ...prev,
-                category_id: categoryId,
-              }));
-            }}
+            onCategorySelected={handleCategorySelected}
           />
         );
+      }
 
       case 'categoryDetails':
         return (
@@ -298,7 +301,8 @@ const ModalBase = ({
         >
           {/* Left (Back) */}
           <div className="d-flex align-items-center" style={{ minWidth: 100 }}>
-            {currentPage !== rootPage && (
+            {/* {currentPage !== rootPage && ( */}
+            {canGoBack && (
               <button
                 type="button"
                 className="btn btn-secondary btn-ms"

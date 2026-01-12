@@ -56,9 +56,11 @@ function RecurringController({ onOpenModal, registerRefreshRecurring }) {
       ? recurringTemplates.find((r) => r.id === recurringTemplateId)
       : null;
     setSelectedRecurringTemplate(recurringTemplate || null);
-    const relatedTransactions = await getRecurringTemplateRelatedTransactions(recurringTemplateId);
-    setSelectedRecurringTemplateRelatedTransactions(relatedTransactions || []);
-    // setSelectedTransaction(null);
+    let relatedTransactions = [];
+    if (recurringTemplateId) {
+      relatedTransactions = await getRecurringTemplateRelatedTransactions(recurringTemplateId);
+    }
+    setSelectedRecurringTemplateRelatedTransactions(relatedTransactions);
     if (onOpenModal) {
       onOpenModal();
     }

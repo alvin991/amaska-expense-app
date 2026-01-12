@@ -4,8 +4,10 @@ import DashboardHeader from './dashboard/DashboardHeader';
 import DashboardCharts from './dashboard/DashboardCharts';
 import MySearchBox from './MySearchBox';
 import DateGroupedTable from './DateGroupedTable.jsx';
+import TransactionsTab from './TransactionsTab.jsx';
 import { formatLocalDate } from '../utils/dateUtils';
 import useExpenseStore from '../store/useExpenseStore';
+import { data } from 'react-router-dom';
 
 function TransactionsController({ onOpenModal, registerRefreshTransactions }) {
   const {
@@ -18,12 +20,6 @@ function TransactionsController({ onOpenModal, registerRefreshTransactions }) {
   } = useExpenseStore();
 
   const [transactionSearchQuery, setTransactionSearchQuery] = useState('');
-  const [chartDataByCategory, setChartDataByCategory] = useState([]);
-  const [chartDataByPaymentMethod, setChartDataByPaymentMethod] = useState([]);
-  const [periodTotalAmount, setPeriodTotalAmount] = useState(0.0);
-  const [leftToSpendData, setLeftToSpendData] = useState([]);
-  const [leftToSpend, setLeftToSpend] = useState('0.00');
-  const [monthName, setMonthName] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -57,12 +53,6 @@ function TransactionsController({ onOpenModal, registerRefreshTransactions }) {
     return result;
   };
 
-  const updateMonthName = useCallback(() => {
-    const d = new Date(currentYear, currentMonth, 1);
-    const monthNameStr = d.toLocaleString('default', { month: 'long' });
-    setMonthName(`${monthNameStr}, ${currentYear}`);
-  }, [currentYear, currentMonth]);
-
   const fetchTransactions = useCallback(async () => {
     try {
       setLoading(true);
@@ -75,27 +65,12 @@ function TransactionsController({ onOpenModal, registerRefreshTransactions }) {
 
       setTransactions(formattedTransactions);
       setCategoriesUsed(new Set(formattedTransactions.map((tx) => tx.category_id)));
-
-      const totalAmount = response.data.reduce((acc, tx) => acc + tx.amount, 0);
-      const leftToSpendValue = (BudgetByMonth - totalAmount).toFixed(2);
-
-      setPeriodTotalAmount(totalAmount.toFixed(2));
-      setLeftToSpend(leftToSpendValue);
-      setLeftToSpendData([
-        { name: 'Left to Spend', value: Number(leftToSpendValue), fill: '#00C49F' },
-        { name: 'Spent', value: Number(totalAmount), fill: '#FF8042' },
-      ]);
-
-      setChartDataByCategory(formatData(response.data, 'category_name'));
-      setChartDataByPaymentMethod(formatData(response.data, 'payment_method_name'));
-
-      updateMonthName();
     } catch (err) {
       setError(err.message || String(err));
     } finally {
       setLoading(false);
     }
-  }, [BudgetByMonth, firstDayOfMonth, lastDayOfMonth, setCategoriesUsed, setTransactions, updateMonthName]);
+  }, [firstDayOfMonth, lastDayOfMonth, setCategoriesUsed, setTransactions]);
 
   useEffect(() => {
     fetchTransactions();
@@ -112,6 +87,12 @@ function TransactionsController({ onOpenModal, registerRefreshTransactions }) {
     setCurrentYear(year);
     setCurrentMonth(monthIndex0Based);
   };
+
+  const monthName = useMemo(() => {
+    const d = new Date(currentYear, currentMonth, 1);
+    const monthNameStr = d.toLocaleString('default', { month: 'long' });
+    return `${monthNameStr}, ${currentYear}`;
+  }, [currentYear, currentMonth]);
 
   const normalizedTransactions = useMemo(
     () =>
@@ -142,6 +123,30 @@ function TransactionsController({ onOpenModal, registerRefreshTransactions }) {
     );
   }, [normalizedTransactions, transactionSearchQuery]);
 
+  const { periodTotalAmount, leftToSpend, leftToSpendData } = useMemo(() => {
+    const totalAmount = transactions.reduce((acc, tx) => acc + tx.amount, 0);
+    const leftToSpendValue = BudgetByMonth - totalAmount;
+
+    return {
+      periodTotalAmount: totalAmount.toFixed(2),
+      leftToSpend: leftToSpendValue.toFixed(2),
+      leftToSpendData: [
+        { name: 'Left to Spend', value: Number(leftToSpendValue.toFixed(2)), fill: '#00C49F' },
+        { name: 'Spent', value: Number(totalAmount.toFixed(2)), fill: '#FF8042' },
+      ],
+    };
+  }, [transactions, BudgetByMonth]);
+
+  const chartDataByCategory = useMemo(
+    () => formatData(transactions, 'category_name'),
+    [transactions]
+  );
+
+  const chartDataByPaymentMethod = useMemo(
+    () => formatData(transactions, 'payment_method_name'),
+    [transactions]
+  );
+
   const handleRowDoubleClick = (rowId) => {
     const transaction = rowId
       ? transactions.find((t) => t.transaction_id === rowId)
@@ -166,7 +171,7 @@ function TransactionsController({ onOpenModal, registerRefreshTransactions }) {
 
   return (
     <>
-      <DashboardHeader
+      {/* <DashboardHeader
         monthName={monthName}
         budgetByMonth={BudgetByMonth}
         periodTotalAmount={periodTotalAmount}
@@ -228,7 +233,36 @@ function TransactionsController({ onOpenModal, registerRefreshTransactions }) {
             categories={categories}
           />
         </div>
-      </div>
+      </div> */}
+
+      <TransactionsTab
+        dashboardHeader={{
+            monthName,
+            budgetByMonth: BudgetByMonth,
+            periodTotalAmount,
+            currentYear,
+            currentMonth,
+            onChangeMonth: handleChangeMonth
+        }}
+        charts={{
+            leftToSpendData,
+            leftToSpend,
+            chartDataByCategory,
+            chartDataByPaymentMethod
+        }}
+        dataTableHeader={{
+            title: "TRANSACTIONS",
+            onSearchChange: setTransactionSearchQuery,
+            placeholder: "Search Merchant, Category or Payment Method",
+            onNewClick: handleNewTransactionClick,            
+            newButtonLabel: "New Transaction",
+        }}
+        dataTable={{
+            data: filteredTransactions,
+            onRowDoubleClick: handleRowDoubleClick,
+            categories
+        }}
+      />
     </>
   );
 }

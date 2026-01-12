@@ -15,7 +15,7 @@ const circleSize = iconSize + 12; // similar padding to IconElement
 const CategoryListPage = ({
   categories,
   categoriesUsed,
-  transaction,
+  selectedItem,  // can be either transaction or recurring template
   navigation, // { navigate, back, resetToRoot, currentPage, canGoBack }
   onCategorySelected,   // NEW
 }) => {
@@ -29,8 +29,9 @@ const CategoryListPage = ({
 
     clickTimer.current = setTimeout(() => {
       if (clickTimer.current) {
-        onCategorySelected?.(categoryId);
-        navigation.back();
+        if (onCategorySelected) {
+          onCategorySelected(categoryId);
+        }
         clickTimer.current = null;
       }
     }, 250);
@@ -67,7 +68,7 @@ const CategoryListPage = ({
                   onClick={() => handleCategoryClick(category.id)}
                   onDoubleClick={() => handleCategoryDoubleClick(category.id)}
                 >
-                  {transaction?.category_id === category.id ? (
+                  {selectedItem?.category_id === category.id ? (
                     <span className="list-item-tick">✓</span>
                   ) : (
                     <span className="list-item-tick" aria-hidden="true"></span>

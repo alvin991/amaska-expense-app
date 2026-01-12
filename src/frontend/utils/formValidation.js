@@ -1,4 +1,4 @@
-// Validate transaction form data (TransactionEntryPage)
+// Validate transaction form data (TransactionForm)
 export function validateTransactionForm(formData) {
   const errors = {};
 
@@ -23,10 +23,10 @@ export function validateTransactionForm(formData) {
   }
 
   // Date
-  if (!formData.date) {
-    errors.date = 'Date is required.';
-  } else if (Number.isNaN(Date.parse(formData.date))) {
-    errors.date = 'Date is invalid.';
+  if (!formData.transaction_date) {
+    errors.transaction_date = 'Date is required.';
+  } else if (Number.isNaN(Date.parse(formData.transaction_date))) {
+    errors.transaction_date = 'Date is invalid.';
   }
 
   return errors;

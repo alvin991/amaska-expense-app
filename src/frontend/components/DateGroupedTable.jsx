@@ -59,6 +59,7 @@ function DateGroupedTable({ data, onRowDoubleClick, className, categories = [] }
         paddingTop: '1rem',
         paddingBottom: '1rem',
         paddingLeft: '1rem',
+        paddingRight: '1rem',
         overflow: 'hidden',
       }}
     >
