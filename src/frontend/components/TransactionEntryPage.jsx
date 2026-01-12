@@ -29,6 +29,13 @@ function TransactionEntryPage({
   const [errors, setErrors] = useState({});
   const amountInputRef = useRef(null);
 
+  // Auto-focus on amount field when component mounts
+  useEffect(() => {
+    if (amountInputRef.current) {
+      amountInputRef.current.focus();
+    }
+  }, []);
+
   useEffect(() => {
     const amountNumber =
       typeof transaction.amount === 'number'
