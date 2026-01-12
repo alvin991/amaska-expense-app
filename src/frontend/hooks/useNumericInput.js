@@ -15,15 +15,28 @@ export default function useNumericInput({
   error = {},
   events = {},
 }) {
-  const { precision = 2 } = format;
+  const { precision = 2, allowNegative = false } = format;
   const { setError, key: errorKey = 'amount', message: errorMessage = 'Amount must be numeric.' } = error;
   const { onChangeNumber, onBlurValidNumber, onBlurInvalidNumber } = events;
   const inputRef = useRef(null);
 
   const handleChange = (e) => {
     let v = e.target.value;
-    // Remove everything except digits and dot
-    v = v.replace(/[^0-9.]/g, '');
+    
+    if (allowNegative) {
+      // Remove everything except digits, dot, and minus
+      v = v.replace(/[^0-9.-]/g, '');
+      // Allow minus only at the beginning
+      const hasLeadingMinus = v.startsWith('-');
+      v = v.replace(/-/g, ''); // Remove all minus signs
+      if (hasLeadingMinus) {
+        v = '-' + v; // Add back the leading minus
+      }
+    } else {
+      // Remove everything except digits and dot
+      v = v.replace(/[^0-9.]/g, '');
+    }
+    
     // Allow at most one dot
     const parts = v.split('.');
     if (parts.length > 2) {

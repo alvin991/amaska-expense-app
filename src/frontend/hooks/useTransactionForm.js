@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import useNumericInput from './useNumericInput';
+import { all } from 'axios';
 
 /**
  * Encapsulates TransactionForm form state and field-level handlers,
@@ -80,7 +81,7 @@ export default function useTransactionForm(transaction, onDirtyChange) {
   } = useNumericInput({
     value: formData.amount,
     setValue: (v) => setFormData((prev) => ({ ...prev, amount: v })),
-    format: { precision: 2 },
+    format: { precision: 2, allowNegative: true },
     error: {
       setError: setErrors,
       key: 'amount',
