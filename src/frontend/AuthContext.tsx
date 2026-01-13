@@ -1,10 +1,33 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 
-const AuthContext = createContext(null);
+// Define what a User object looks like
+type User = {
+  id: number;
+  username: string;
+  email: string;
+  settings?: string;
+};
 
-export function AuthProvider({ children }) {
-  const [token, setToken] = useState(null);
-  const [user, setUser] = useState(null);
+// Define what the AuthContext provides
+type AuthContextType = {
+  token: string | null;
+  user: User | null;
+  login: (newToken: string, newUser: User) => void;
+  logout: () => void;
+  initialized: boolean;
+};
+
+// Create context with proper type (or null initially)
+const AuthContext = createContext<AuthContextType | null>(null);
+
+// Props type for AuthProvider component
+type AuthProviderProps = {
+  children: ReactNode;
+};
+
+export function AuthProvider({ children }: AuthProviderProps) {
+  const [token, setToken] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
@@ -24,7 +47,7 @@ export function AuthProvider({ children }) {
     setInitialized(true);
   }, []);
 
-  const login = (newToken, newUser) => {
+  const login = (newToken: string, newUser: User) => {
     setToken(newToken);
     setUser(newUser || null);
     localStorage.setItem('authToken', newToken);
@@ -42,12 +65,12 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('authUser');
   };
 
-  const value = { token, user, login, logout, initialized };
+  const value: AuthContextType = { token, user, login, logout, initialized };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-export function useAuth() {
+export function useAuth(): AuthContextType {
   const ctx = useContext(AuthContext);
   if (!ctx) {
     throw new Error('useAuth must be used within an AuthProvider');
