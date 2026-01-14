@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { useAuth } from '../AuthContext.jsx';
+import { useAuth } from '../AuthContext';
 
 const demoUsers = [
   { username: 'alvin', label: 'Alvin' },
@@ -26,7 +26,21 @@ function LoginPage() {
       const response = await axios.post('/api/auth/login', { username, password });
       const { token, user } = response.data;
       login(token, user);
-      navigate('/', { replace: true });
+      
+      // Check if user has a start-page setting
+      let startPage = '/';
+      if (user.settings) {
+        try {
+          const settings = JSON.parse(user.settings);
+          if (settings['start-page']) {
+            startPage = settings['start-page'];
+          }
+        } catch (err) {
+          console.error('Failed to parse user settings:', err);
+        }
+      }
+      
+      navigate(startPage, { replace: true });
     } catch (err) {
       const msg = err.response?.data?.error || 'Login failed';
       setError(msg);

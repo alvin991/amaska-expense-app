@@ -10,7 +10,7 @@ import CardsPage from './components/CardsPage.jsx';
 import UsersPage from './components/UsersPage.jsx';
 import InvestmentsPage from './components/InvestmentsPage.tsx';
 import SettingsPage from './components/SettingsPage.tsx';
-import { AuthProvider } from './AuthContext.jsx';
+import { AuthProvider } from './AuthContext';
 import ProtectedRoute from './ProtectedRoute.jsx';
 import LoginPage from './components/LoginPage.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';

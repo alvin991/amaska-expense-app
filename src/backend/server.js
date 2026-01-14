@@ -117,7 +117,12 @@ apiRouter.post('/auth/login', (req, res) => {
 
         res.json({
             token,
-            user: { id: user.id, username: user.username, email: user.email },
+            user: { 
+                id: user.id, 
+                username: user.username, 
+                email: user.email,
+                settings: user.settings 
+            },
         });
     });
 });
