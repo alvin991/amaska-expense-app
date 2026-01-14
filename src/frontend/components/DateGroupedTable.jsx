@@ -140,7 +140,7 @@ function DateGroupedTable({ data, onRowDoubleClick, className, categories = [] }
                             <IconElement
                               key={iconKey}
                               iconKey={iconKey}
-                              label={iconInfo.label}
+                              label={iconInfo?.label || iconKey}
                               size={iconSize}
                               color={cat?.color || bgColor}
                               showLabel={false}
