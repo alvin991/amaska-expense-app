@@ -61,10 +61,9 @@ CREATE TABLE IF NOT EXISTS expense_transactions (
     amount DECIMAL(10, 2) NOT NULL, -- actual amount (can be edited later)
     notes VARCHAR(255),
     transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    projected_category_id INTEGER, -- planned category at generation time
+    projected_transaction_date TIMESTAMP, -- planned date at generation time
     category_id INTEGER NOT NULL,
     merchant VARCHAR(100),
-    projected_payment_method_id INTEGER, -- planned payment method at generation time
     payment_method_id INTEGER,
     recurring_template_id INTEGER,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -73,8 +72,6 @@ CREATE TABLE IF NOT EXISTS expense_transactions (
     modified_by INTEGER,
     FOREIGN KEY (category_id) REFERENCES expense_categories(id),
     FOREIGN KEY (payment_method_id) REFERENCES payment_methods(id),
-    FOREIGN KEY (projected_category_id) REFERENCES expense_categories(id),
-    FOREIGN KEY (projected_payment_method_id) REFERENCES payment_methods(id),
     FOREIGN KEY (recurring_template_id) REFERENCES recurring_templates(id) ON DELETE SET NULL,
     FOREIGN KEY (created_by) REFERENCES users(id),
     FOREIGN KEY (modified_by) REFERENCES users(id)

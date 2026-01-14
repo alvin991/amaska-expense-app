@@ -48,19 +48,18 @@ function applyRecurringTemplates(upToDate, callback) {
 
                 const insertSql = `
                     INSERT INTO expense_transactions
-                    (projected_amount, amount, notes, transaction_date, merchant, projected_category_id, category_id, projected_payment_method_id, payment_method_id, recurring_template_id, created_by)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (projected_amount, amount, notes, transaction_date, projected_transaction_date, merchant, category_id, payment_method_id, recurring_template_id, created_by)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 `;
 
                 const insertValues = [
                     rec.projected_amount,
                     rec.projected_amount,
                     rec.notes,
-                    nextRunDate,
+                    nextRunDate, // transaction_date
+                    nextRunDate, // projected_transaction_date
                     rec.merchant,
                     rec.projected_category_id,
-                    rec.projected_category_id,
-                    rec.projected_payment_method_id,
                     rec.projected_payment_method_id,
                     rec.id,
                     systemUserId,

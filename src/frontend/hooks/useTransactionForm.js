@@ -101,6 +101,13 @@ export default function useTransactionForm(transaction, onDirtyChange) {
     }
   }, []);
 
+  // Computed: lock fields if transaction is system-generated (from recurring_template)
+  // If transaction_id is missing, it's a new transaction (not system-generated)
+  const isSystemGenerated = useMemo(() => {
+    if (!transaction || !transaction.transaction_id) return false;
+    return transaction.recurring_template_id !== null && transaction.recurring_template_id !== undefined;
+  }, [transaction?.transaction_id, transaction?.recurring_template_id]);
+
   return {
     formData,
     setFormData,
@@ -111,5 +118,6 @@ export default function useTransactionForm(transaction, onDirtyChange) {
     handleChange,
     handlePaymentMethodChange,
     isDirty,
+    isSystemGenerated, // Add this flag for consumers to lock fields
   };
 }

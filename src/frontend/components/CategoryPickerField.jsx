@@ -2,11 +2,16 @@ import { Form, InputGroup } from 'react-bootstrap';
 import IconElement from './IconElement';
 import { iconRegistry, iconsFromDb } from '../iconRegistry';
 
-function CategoryPickerField({ categories, selectedCategoryId, error, onClick }) {
+function CategoryPickerField({ categories, selectedCategoryId, error, onClick, disabled = false, style = {} }) {
   const list = categories || [];
 
   const getSelectedCategory = () =>
     list.find((c) => c.id === selectedCategoryId) || null;
+
+  // Disabled style
+  const disabledStyle = disabled
+    ? { background: '#e9ecef', color: '#6c757d', cursor: 'not-allowed', ...style }
+    : style;
 
   return (
     <Form.Group className="mb-3">
@@ -24,7 +29,8 @@ function CategoryPickerField({ categories, selectedCategoryId, error, onClick })
           return IconComponent ? (
             <InputGroup.Text
               className="category-input-icon category-clickable"
-              onClick={onClick}
+              onClick={disabled ? undefined : onClick}
+              style={disabledStyle}
             >
               <IconElement
                 iconKey={iconKey}
@@ -35,7 +41,7 @@ function CategoryPickerField({ categories, selectedCategoryId, error, onClick })
               />
             </InputGroup.Text>
           ) : (
-            <InputGroup.Text className="category-input-icon" />
+            <InputGroup.Text className="category-input-icon" style={disabledStyle} />
           );
         })()}
 
@@ -45,14 +51,17 @@ function CategoryPickerField({ categories, selectedCategoryId, error, onClick })
           className="category-input-control category-clickable"
           value={getSelectedCategory()?.name || ''}
           placeholder="Select Category"
-          onClick={onClick}
+          onClick={disabled ? undefined : onClick}
           isInvalid={!!error}
+          disabled={disabled}
+          style={disabledStyle}
         />
 
         {/* right caret, also clickable */}
         <InputGroup.Text
           className="category-input-caret category-clickable"
-          onClick={onClick}
+          onClick={disabled ? undefined : onClick}
+          style={disabledStyle}
         >
           ▾
         </InputGroup.Text>

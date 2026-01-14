@@ -6,8 +6,7 @@ export const DEFAULT_TRANSACTION = {
   projected_amount: 0.0,
   amount: 0.0,
   merchant: '',
-  projected_category_id: '',
-  projected_payment_method_id: '',
+  projected_transaction_date: '',
   transaction_date: formatLocalDate(new Date()),   // local yyyy-mm-dd
   notes: '',
   category_id: '',
@@ -21,6 +20,7 @@ export const DEFAULT_RECURRING_TEMPLATE = {
   name: '',
   projected_amount: 0.0,
   merchant: '',
+  projected_category_id: '',
   projected_payment_method_id: '',
   start_date: formatLocalDate(new Date()), // local yyyy-mm-dd
   frequency: 'monthly',

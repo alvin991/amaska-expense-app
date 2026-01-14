@@ -28,6 +28,7 @@ function TransactionForm({
     handleChange,
     handlePaymentMethodChange,
     isDirty,
+    isSystemGenerated
   } = useTransactionForm(transaction, onDirtyChange);
 
   const { openCategoryList } = useCategoryListPicker(navigation);
@@ -70,6 +71,17 @@ function TransactionForm({
               className="amount-input"
               isInvalid={!!errors.amount}
             />
+            {/* Planned Amount and Projected Amount (only if system-generated) */}
+            {isSystemGenerated && (
+              <>
+                <InputGroup.Text style={{ background: '#f0f0f0', color: '#555', borderLeft: 'none', borderRight: 'none' }}>
+                  Planned Amount
+                </InputGroup.Text>
+                <InputGroup.Text style={{ background: '#f0f0f0', color: '#555', minWidth: 90, justifyContent: 'end' }}>
+                  ${transaction.projected_amount !== undefined && transaction.projected_amount !== null ? Number(transaction.projected_amount).toFixed(2) : '--'}
+                </InputGroup.Text>
+              </>
+            )}
             <Form.Control.Feedback type="invalid">
               {errors.amount}
             </Form.Control.Feedback>
@@ -86,6 +98,8 @@ function TransactionForm({
             onChange={handleChange}
             placeholder="Enter merchant name"
             isInvalid={!!errors.merchant}
+            disabled={isSystemGenerated}
+            style={isSystemGenerated ? { background: '#e9ecef', color: '#6c757d' } : {}}
           />
           <Form.Control.Feedback type="invalid">
             {errors.merchant}
@@ -100,6 +114,8 @@ function TransactionForm({
             value={formData.paymentMethod}
             onChange={handlePaymentMethodChange}
             isInvalid={!!errors.paymentMethod}
+            disabled={isSystemGenerated}
+            style={isSystemGenerated ? { background: '#e9ecef', color: '#6c757d' } : {}}
           >
             <option value="">Select payment method</option>
             {paymentMethods.map((method) => (
@@ -118,19 +134,41 @@ function TransactionForm({
           categories={categories}
           selectedCategoryId={formData.category}
           error={errors.category}
-          onClick={openCategoryList}
+          onClick={isSystemGenerated ? undefined : openCategoryList}
+          disabled={isSystemGenerated}
+          style={isSystemGenerated ? { background: '#e9ecef', color: '#6c757d' } : {}}
         />
 
         {/* Date */}
         <Form.Group className="mb-3">
           <Form.Label>Date</Form.Label>
-          <Form.Control
-            type="date"
-            name="transaction_date"
-            value={formData.transaction_date}
-            onChange={handleChange}
-            isInvalid={!!errors.transaction_date}
-          />
+          {isSystemGenerated ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <Form.Control
+                type="date"
+                name="transaction_date"
+                value={formData.transaction_date}
+                onChange={handleChange}
+                isInvalid={!!errors.transaction_date}
+                style={{ width: '50%' }}
+              />
+              <div style={{ width: '50%' }}>
+                {transaction.projected_transaction_date && (
+                  <div style={{ background: '#f0f0f0', color: '#555', padding: '0.375rem 0.75rem', borderRadius: 4, fontSize: '0.95em', width: '100%' }}>
+                    Planned Date: {transaction.projected_transaction_date}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <Form.Control
+              type="date"
+              name="transaction_date"
+              value={formData.transaction_date}
+              onChange={handleChange}
+              isInvalid={!!errors.transaction_date}
+            />
+          )}
           <Form.Control.Feedback type="invalid">
             {errors.transaction_date}
           </Form.Control.Feedback>

@@ -26,3 +26,8 @@ export interface RecurringTemplateInput {
   next_run_date?: string; // optional when updating
   enabled?: boolean;
 }
+
+export interface ExpenseTransaction {
+  // ...other fields...
+  projected_transaction_date?: string | null;
+}

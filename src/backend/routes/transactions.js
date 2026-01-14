@@ -7,10 +7,13 @@ router.get('/', (req, res) => {
     const { start_date, end_date } = req.query;
     db.all(`SELECT 
         t.id AS transaction_id, 
+        t.projected_amount,
         t.amount, 
         t.notes, 
         t.transaction_date, 
+        t.projected_transaction_date,
         t.merchant, 
+        t.recurring_template_id,
         t.created_at AS transaction_created_at,
         t.created_by AS transaction_created_by,
         t.modified_at AS transaction_modified_at,
