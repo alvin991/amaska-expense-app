@@ -1,0 +1,814 @@
+const express = require('express');
+const cors = require('cors');
+const sqlite3 = require('sqlite3').verbose();
+const fs = require('fs');
+const path = require('path');
+const jwt = require('jsonwebtoken');
+require('dotenv').config();
+const cron = require('node-cron');
+const recurringCron = process.env.RECURRING_CRON || '0 2 * * *';
+
+// Database file path: can be overridden via DB_PATH in .env or environment
+const dbPath = process.env.DB_PATH
+    ? path.resolve(process.env.DB_PATH)
+    : path.join(__dirname, './../db/database.db');
+const sqlPath = path.join(__dirname, './../db/statements.sql');
+
+// If database does not exist, create and initialize it
+if (!fs.existsSync(dbPath)) {
+    const initDb = new sqlite3.Database(dbPath);
+  const initSql = fs.readFileSync(sqlPath, 'utf8');
+    initDb.exec(initSql, (err) => {
+    if (err) {
+      console.error('Error initializing database:', err);
+    } else {
+      console.log('Database initialized successfully.');
+    }
+        initDb.close();
+  });
+}
+
+// Shared SQLite connection for the whole process
+const db = new sqlite3.Database(dbPath, (err) => {
+        if (err) {
+                console.error('Error opening shared database connection:', err.message);
+        } else {
+                console.log('Shared database connection opened.');
+        }
+});
+
+// Ensure foreign keys (including ON DELETE SET NULL) are enforced
+db.run('PRAGMA foreign_keys = ON');
+
+// Global variable to store SYSTEM user ID
+let systemUserId = null;
+
+const app = express();
+const apiRouter = express.Router();
+
+// --- Auth / JWT setup ---
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-change-me';
+
+// Initialize SYSTEM user at startup
+function initializeSystemUser() {
+    const systemUsername = 'SYSTEM';
+    
+    db.get('SELECT id FROM users WHERE username = ?', [systemUsername], (err, user) => {
+        if (err) {
+            console.error('Error checking for SYSTEM user:', err.message);
+            return;
+        }
+        
+        if (user) {
+            systemUserId = user.id;
+            console.log('SYSTEM user found with ID:', systemUserId);
+            return;
+        }
+        
+        // User doesn't exist, create it
+        const insertSql = 'INSERT INTO users (username, email) VALUES (?, ?)';
+        db.run(insertSql, [systemUsername, 'system@automated'], function(insertErr) {
+            if (insertErr) {
+                console.error('Error creating SYSTEM user:', insertErr.message);
+                return;
+            }
+            systemUserId = this.lastID;
+            console.log('Created SYSTEM user with ID:', systemUserId);
+        });
+    });
+}
+
+// Initialize SYSTEM user
+initializeSystemUser();
+
+function authenticateJWT(req, res, next) {
+    const authHeader = req.headers.authorization || '';
+    const [scheme, token] = authHeader.split(' ');
+
+    if (scheme !== 'Bearer' || !token) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    jwt.verify(token, JWT_SECRET, (err, payload) => {
+        if (err) {
+            console.error('JWT verify error:', err.message);
+            return res.status(401).json({ error: 'Invalid token' });
+        }
+        req.user = payload; // { userId, username }
+        next();
+    });
+}
+
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production'
+    ? 'http://localhost:8080'
+    : 'http://localhost:5173',
+  optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
+
+app.use(express.json());
+
+// --- Auth routes ---
+// NOTE: for learning purposes this uses only username (no password storage yet).
+// You can later extend the users table with a password hash and verify it here.
+apiRouter.post('/auth/login', (req, res) => {
+    const { username } = req.body || {};
+
+    if (!username) {
+        return res.status(400).json({ error: 'Username is required' });
+    }
+
+    const sql = 'SELECT * FROM users WHERE username = ?';
+    db.get(sql, [username], (err, user) => {
+        if (err) {
+            console.error('Error looking up user for login:', err.message);
+            return res.status(500).json({ error: 'Login failed' });
+        }
+        if (!user) {
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        const token = jwt.sign(
+            { userId: user.id, username: user.username },
+            JWT_SECRET,
+            { expiresIn: '8h' }
+        );
+
+        res.json({
+            token,
+            user: { 
+                id: user.id, 
+                username: user.username, 
+                email: user.email,
+                settings: user.settings 
+            },
+        });
+    });
+});
+
+// All routes defined on apiRouter after this point require a valid JWT
+apiRouter.use(authenticateJWT);
+
+// Utility to advance a YYYY-MM-DD date string by a given frequency/interval
+function addPeriod(dateStr, frequency, interval) {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const d = new Date(year, month - 1, day);
+
+    switch (frequency) {
+        case 'daily':
+            d.setDate(d.getDate() + interval);
+            break;
+        case 'weekly':
+            d.setDate(d.getDate() + 7 * interval);
+            break;
+        case 'biweekly':
+            d.setDate(d.getDate() + 14 * interval);
+            break;
+        case 'monthly':
+            d.setMonth(d.getMonth() + interval);
+            break;
+        case 'yearly':
+            d.setFullYear(d.getFullYear() + interval);
+            break;
+        default:
+            d.setDate(d.getDate() + interval);
+            break;
+    }
+
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+}
+
+// Generate Recurring Templates transactions up to (and including) a given date
+function applyRecurringTemplates(upToDate, callback) {
+    const targetDate = upToDate;
+
+    // Check if systemUserId is available
+    if (!systemUserId) {
+        console.error('SYSTEM user not initialized yet');
+        return callback(new Error('SYSTEM user not initialized'));
+    }
+
+    db.all('SELECT * FROM recurring_templates where enabled = 1', [], (err, rows) => {
+        if (err) {
+            console.error('Error reading recurring_templates:', err.message);
+            return callback(err);
+        }
+
+        const processNext = (index) => {
+            if (index >= rows.length) {
+                return callback(null);
+            }
+
+            const rec = rows[index];
+            let { next_run_date: nextRunDate } = rec;
+
+            const shouldContinue = () => {
+                if (!nextRunDate) return false;
+                if (nextRunDate > targetDate) return false;
+                if (rec.end_date && nextRunDate > rec.end_date) return false;
+                return true;
+            };
+
+            const insertOne = () => {
+                if (!shouldContinue()) {
+                    // update next_run_date in DB and move to next template
+                    const updateSql = 'UPDATE recurring_templates SET next_run_date = ? WHERE id = ?';
+                    db.run(updateSql, [nextRunDate, rec.id], (updateErr) => {
+                        if (updateErr) {
+                            console.error('Error updating next_run_date:', updateErr.message);
+                        }
+                        processNext(index + 1);
+                    });
+                    return;
+                }
+
+                const insertSql = `
+                    INSERT INTO expense_transactions
+                    (projected_amount, amount, notes, transaction_date, merchant, projected_category_id, category_id, projected_payment_method_id, payment_method_id, recurring_template_id, created_by)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `;
+
+                const insertValues = [
+                    rec.projected_amount,
+                    rec.projected_amount,
+                    rec.notes,
+                    nextRunDate,
+                    rec.merchant,
+                    rec.projected_category_id,
+                    rec.projected_category_id,
+                    rec.projected_payment_method_id,
+                    rec.projected_payment_method_id,
+                    rec.id,
+                    systemUserId,
+                ];
+
+                db.run(insertSql, insertValues, function(insertErr) {
+                    if (insertErr) {
+                        console.error('Error inserting Recurring Template transaction:', insertErr.message);
+                        console.error('Failed template data:', {
+                            template_id: rec.id,
+                            template_name: rec.name,
+                            projected_category_id: rec.projected_category_id,
+                            projected_payment_method_id: rec.projected_payment_method_id,
+                            nextRunDate: nextRunDate
+                        });
+                        // Skip further inserts for this template
+                        processNext(index + 1);
+                        return;
+                    }
+
+                    // Log successful insertion
+                    console.log(`✓ Inserted transaction for template "${rec.name}" (ID: ${rec.id}) on ${nextRunDate}, transaction ID: ${this.lastID}`);
+
+                    // advance nextRunDate and loop
+                    nextRunDate = addPeriod(nextRunDate, rec.frequency, rec.interval || 1);
+                    insertOne();
+                    }
+                );
+            };
+
+            insertOne();
+        };
+
+        processNext(0);
+    });
+}
+
+// Schedule cron job to apply recurring templates daily
+console.log('='.repeat(60));
+console.log(`[CRON SETUP] Scheduling recurring templates cron with pattern: "${recurringCron}"`);
+console.log(`[CRON SETUP] System time: ${new Date().toString()}`);
+
+// Validate cron pattern
+if (!cron.validate(recurringCron)) {
+    console.error(`[CRON SETUP ERROR] Invalid cron pattern: "${recurringCron}"`);
+    console.error('[CRON SETUP ERROR] Cron job will NOT run. Please fix the pattern.');
+} else {
+    console.log('[CRON SETUP] ✓ Cron pattern is valid');
+    
+    try {
+        const cronJob = cron.schedule(recurringCron, () => {
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            const target = `${yyyy}-${mm}-${dd}`;
+            
+            console.log('='.repeat(50));
+            console.log('[cron] TRIGGERED at', new Date().toLocaleString());
+            console.log('[cron] Applying Recurring Templates up to', target);
+            console.log('='.repeat(50));
+            
+            applyRecurringTemplates(target, (err) => {
+                if (err) {
+                    console.error('[cron] Failed:', err.message);
+                } else {
+                    console.log('[cron] Done successfully');
+                }
+            });
+        }, {
+            scheduled: true
+        });
+        
+        console.log(`[CRON SETUP] ✓ Cron job scheduled successfully`);
+        console.log(`[CRON SETUP] If pattern is "* * * * *", expect trigger every minute`);
+        console.log(`[CRON SETUP] Watch for "TRIGGERED at" messages...`);
+        console.log('='.repeat(60));
+    } catch (error) {
+        console.error('[CRON SETUP ERROR] Failed to schedule cron job:', error.message);
+        console.error(error.stack);
+    }
+}
+
+// Test endpoint to check cron status
+apiRouter.get('/cron/status', (req, res) => {
+    res.json({
+        pattern: recurringCron,
+        systemUserId: systemUserId,
+        serverTime: new Date().toLocaleString(),
+        timezone: 'America/Los_Angeles'
+    });
+});
+
+apiRouter.get('/users', (req, res) => {
+    db.all('SELECT * FROM users', [], (err, rows) => {
+        if (err) {
+            console.error('Error executing query:', err.message);
+            res.status(500).json({ error: 'Failed to retrieve data' });
+        } else {
+            res.json(rows);
+        }
+    });
+});
+
+apiRouter.get('/categories', (req, res) => {
+    db.all('SELECT * FROM expense_categories', [], (err, rows) => {
+        if (err) {
+            console.error('Error executing query:', err.message);
+            res.status(500).json({ error: 'Failed to retrieve data' });
+        } else {
+            res.json(rows);
+        }
+    });
+});
+
+// Create new Category
+apiRouter.post('/categories', (req, res) => {
+    console.log(`POST /api/categories called with body: ${JSON.stringify(req.body, null, 2)}`);
+    const { name, description, color, icon } = req.body;
+    const userId = req.user.userId;
+    
+    const sql = `
+        INSERT INTO expense_categories 
+        (name, description, color, icon, created_by)
+        VALUES (?, ?, ?, ?, ?)
+    `;
+    
+    db.run(sql, [name, description, color, icon, userId || null], 
+        function(err) {
+            if (err) {
+                console.error('Error creating category:', err.message);
+                res.status(500).json({ error: err.message || 'Failed to create category' });
+            } else {
+                res.status(201).json({ 
+                    message: 'Category created successfully',
+                    id: this.lastID 
+                });
+            }
+        }
+    );
+});
+
+// Update existing Category
+apiRouter.put('/categories/:id', (req, res) => {
+    console.log(`PUT /api/categories/${req.params.id} called with body: ${JSON.stringify(req.body, null, 2)}`);
+    const { name, description, color, icon } = req.body;
+    const userId = req.user.userId;
+    const categoryId = req.params.id;
+    
+    const sql = `
+        UPDATE expense_categories 
+        SET name = ?,
+            description = ?,
+            color = ?,
+            icon = ?,
+            modified_at = CURRENT_TIMESTAMP,
+            modified_by = ?
+        WHERE id = ?
+    `;
+    
+    db.run(sql, [name, description, color, icon, userId || null, categoryId], 
+        function(err) {
+            if (err) {
+                console.error('Error updating category:', err.message);
+                res.status(500).json({ error: 'Failed to update category' });
+            } else if (this.changes === 0) {
+                res.status(404).json({ error: 'Category not found' });
+            } else {
+                res.json({ 
+                    message: 'Category updated successfully',
+                    changes: this.changes 
+                });
+            }
+        }
+    );
+});
+
+// Delete existing Category
+apiRouter.delete('/categories/:id', (req, res) => {
+    console.log(`DELETE /api/categories/${req.params.id} called`);
+  const categoryId = req.params.id;
+  
+    const sql = 'DELETE FROM expense_categories WHERE id = ?';
+  
+    db.run(sql, [categoryId], function(err) {
+        if (err) {
+            console.error('Error deleting category:', err.message);
+            res.status(500).json({ error: 'Failed to delete category' });
+        } else if (this.changes === 0) {
+            res.status(404).json({ error: 'Category not found' });
+        } else {
+            res.json({ message: 'Category deleted successfully' });
+        }
+    });
+});
+
+apiRouter.get('/payment_methods', (req, res) => {
+    db.all('SELECT * FROM payment_methods', [], (err, rows) => {
+        if (err) {
+            console.error('Error executing query:', err.message);
+            res.status(500).json({ error: 'Failed to retrieve data' });
+        } else {
+            res.json(rows);
+        }
+    });
+});
+
+// Create new payment method
+apiRouter.post('/payment_methods', (req, res) => {
+    console.log(`POST /api/payment_methods called with body: ${JSON.stringify(req.body, null, 2)}`);
+    const { name, description } = req.body;
+    const userId = req.user.userId;
+
+    const sql = `
+        INSERT INTO payment_methods 
+        (name, description, created_by)
+        VALUES (?, ?, ?)
+    `;
+
+    db.run(sql, [name, description, userId || null], function (err) {
+        if (err) {
+            console.error('Error creating payment method:', err.message);
+            res.status(500).json({ error: err.message || 'Failed to create payment method' });
+        } else {
+            res.status(201).json({
+                message: 'Payment method created successfully',
+                id: this.lastID,
+            });
+        }
+    });
+});
+
+// Update existing payment method
+apiRouter.put('/payment_methods/:id', (req, res) => {
+    console.log(`PUT /api/payment_methods/${req.params.id} called with body: ${JSON.stringify(req.body, null, 2)}`);
+    const { name, description } = req.body;
+    const userId = req.user.userId;
+    const paymentMethodId = req.params.id;
+
+    const sql = `
+        UPDATE payment_methods 
+        SET name = ?,
+            description = ?,
+            modified_at = CURRENT_TIMESTAMP,
+            modified_by = ?
+        WHERE id = ?
+    `;
+
+    db.run(sql, [name, description, userId || null, paymentMethodId], function (err) {
+        if (err) {
+            console.error('Error updating payment method:', err.message);
+            res.status(500).json({ error: 'Failed to update payment method' });
+        } else if (this.changes === 0) {
+            res.status(404).json({ error: 'Payment method not found' });
+        } else {
+            res.json({
+                message: 'Payment method updated successfully',
+                changes: this.changes,
+            });
+        }
+    });
+});
+
+// Delete existing payment method
+apiRouter.delete('/payment_methods/:id', (req, res) => {
+    console.log(`DELETE /api/payment_methods/${req.params.id} called`);
+    const paymentMethodId = req.params.id;
+
+    const sql = 'DELETE FROM payment_methods WHERE id = ?';
+
+    db.run(sql, [paymentMethodId], function (err) {
+        if (err) {
+            console.error('Error deleting payment method:', err.message);
+            res.status(500).json({ error: 'Failed to delete payment method' });
+        } else if (this.changes === 0) {
+            res.status(404).json({ error: 'Payment method not found' });
+        } else {
+            res.json({ message: 'Payment method deleted successfully' });
+        }
+    });
+});
+
+// Recurring Templates CRUD
+apiRouter.get('/recurring_templates', (req, res) => {
+    db.all('SELECT * FROM recurring_templates', [], (err2, rows) => {
+        if (err2) {
+            console.error('Error fetching recurring_templates:', err2.message);
+            res.status(500).json({ error: 'Failed to retrieve Recurring Templates' });
+        } else {
+            res.json(rows);
+        }
+    });
+});
+apiRouter.get('/recurring_template_related_transactions/:id', (req, res) => {
+    const { id } = req.params;
+    db.all('SELECT * FROM expense_transactions WHERE recurring_template_id = ?', [id], (err2, rows) => {
+        if (err2) {
+            console.error('Error fetching related transactions:', err2.message);
+            res.status(500).json({ error: 'Failed to retrieve related transactions' });
+        } else {
+            res.json(rows);
+        }
+    });
+});
+apiRouter.post('/recurring_templates', (req, res) => {
+    const {
+        name,
+        projected_amount,
+        notes,
+        merchant,
+        projected_category_id,
+        projected_payment_method_id,
+        frequency,
+        interval = 1,
+        start_date,
+        end_date,
+    } = req.body;
+    const userId = req.user.userId;
+
+    const sql = `
+        INSERT INTO recurring_templates
+        (name, projected_amount, notes, merchant, projected_category_id, projected_payment_method_id, frequency, interval, start_date, end_date, next_run_date, created_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+
+    const nextRun = start_date;
+
+    db.run(
+        sql,
+        [
+            name,
+            projected_amount,
+            notes,
+            merchant,
+            projected_category_id,
+            projected_payment_method_id,
+            frequency,
+            interval,
+            start_date,
+            end_date || null,
+            nextRun,
+            userId,
+        ],
+        function (insertErr) {
+            if (insertErr) {
+                console.error('Error creating Recurring Template:', insertErr.message);
+                res.status(500).json({ error: 'Failed to create Recurring Template' });
+            } else {
+                res.status(201).json({ message: 'Recurring Template created', id: this.lastID });
+            }
+        }
+    );
+});
+
+apiRouter.put('/recurring_templates/:id', (req, res) => {
+    const { id } = req.params;
+    const {
+        name,
+        projected_amount,
+        notes,
+        merchant,
+        projected_category_id,
+        projected_payment_method_id,
+        frequency,
+        interval = 1,
+        start_date,
+        end_date,
+        enabled,
+    } = req.body;
+    const userId = req.user.userId;
+
+    const sql = `
+        UPDATE recurring_templates
+        SET name = ?, projected_amount = ?, notes = ?, merchant = ?, projected_category_id = ?, projected_payment_method_id = ?,
+            frequency = ?, interval = ?, start_date = ?, end_date = ?, enabled = ?, modified_at = CURRENT_TIMESTAMP, modified_by = ?
+        WHERE id = ?
+    `;
+    db.run(
+        sql,
+        [
+            name,
+            projected_amount,
+            notes,
+            merchant,
+            projected_category_id,
+            projected_payment_method_id,
+            frequency,
+            interval,
+            start_date,
+            end_date || null,
+            enabled ? 1 : 0,
+            userId,
+            id
+        ],
+        function (updateErr) {
+            if (updateErr) {
+                console.error('Error updating Recurring Template:', updateErr.message);
+                res.status(500).json({ error: 'Failed to update Recurring Template' });
+            } else if (this.changes === 0) {
+                res.status(404).json({ error: 'Recurring Template not found' });
+            } else {
+                res.json({ message: 'Recurring Template updated', changes: this.changes });
+            }
+        }
+    );
+});
+
+// apiRouter.delete('/recurring_templates/:id', (req, res) => {
+//     const { id } = req.params;
+
+//     const sql = 'DELETE FROM recurring_templates WHERE id = ?';
+
+//     db.run(sql, [id], function (deleteErr) {
+//         if (deleteErr) {
+//             console.error('Error deleting Recurring Template:', deleteErr.message);
+//             res.status(500).json({ error: 'Failed to delete Recurring Template' });
+//         } else if (this.changes === 0) {
+//             res.status(404).json({ error: 'Recurring Template not found' });
+//         } else {
+//             res.json({ message: 'Recurring Template deleted' });
+//         }
+//     });
+// });
+
+// Manually trigger application of Recurring Templates up to a given date (defaults to today)
+apiRouter.post('/recurring_templates/apply', (req, res) => {
+    const { upToDate } = req.body || {};
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const target = upToDate || `${yyyy}-${mm}-${dd}`;
+
+    applyRecurringTemplates(target, (err) => {
+        if (err) {
+            return res.status(500).json({ error: 'Failed to apply Recurring Templates' });
+        }
+        res.json({ message: 'Recurring Templates applied', upToDate: target });
+    });
+});
+
+apiRouter.get('/transactions', (req, res) => {
+    const { start_date, end_date } = req.query;
+            db.all(`SELECT 
+                t.id AS transaction_id, 
+                t.amount, 
+                t.notes, 
+                t.transaction_date, 
+                t.merchant, 
+                t.created_at AS transaction_created_at,
+                t.created_by AS transaction_created_by,
+                t.modified_at AS transaction_modified_at,
+                t.modified_by AS transaction_modified_by,
+                c.id AS category_id, 
+                c.name AS category_name, 
+                c.description AS category_description, 
+                p.id AS payment_method_id, 
+                p.name AS payment_method_name, 
+                p.description AS payment_method_description 
+            FROM expense_transactions t 
+            JOIN expense_categories c ON t.category_id = c.id 
+            JOIN payment_methods p ON t.payment_method_id = p.id
+            WHERE t.transaction_date BETWEEN ? AND ?
+            ORDER BY t.transaction_date DESC, t.id DESC;`, [start_date, end_date], (err, rows) => {
+        if (err) {
+            console.error('Error executing query:', err.message);
+            res.status(500).json({ error: 'Failed to retrieve data' });
+        } else {
+            res.json(rows);
+        }
+    });
+});
+
+
+// Create new transaction
+apiRouter.post('/transactions', (req, res) => {
+    console.log(`POST /api/transactions called with body: ${JSON.stringify(req.body, null, 2)}`);
+    const { amount, notes, transaction_date, merchant, category_id, payment_method_id } = req.body;
+    const userId = req.user.userId;
+    
+    const sql = `
+        INSERT INTO expense_transactions 
+        (amount, notes, transaction_date, merchant, category_id, payment_method_id, created_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    `;
+    
+    db.run(sql, [amount, notes, transaction_date, merchant, category_id, payment_method_id, userId], 
+        function(err) {
+            if (err) {
+                console.error('Error creating transaction:', err.message);
+                res.status(500).json({ error: 'Failed to create transaction' });
+            } else {
+                res.status(201).json({ 
+                    message: 'Transaction created successfully',
+                    id: this.lastID 
+                });
+            }
+        }
+    );
+});
+
+// Update existing transaction
+apiRouter.put('/transactions/:id', (req, res) => {
+    console.log(`PUT /api/transactions/${req.params.id} called with body: ${JSON.stringify(req.body, null, 2)}`);
+    const { amount, notes, transaction_date, merchant, category_id, payment_method_id } = req.body;
+    const userId = req.user.userId;
+    const transactionId = req.params.id;
+    
+    const sql = `
+        UPDATE expense_transactions 
+        SET amount = ?,
+            notes = ?,
+            transaction_date = ?,
+            merchant = ?,
+            category_id = ?,
+            payment_method_id = ?,
+            modified_at = CURRENT_TIMESTAMP,
+            modified_by = ?
+        WHERE id = ?
+    `;
+    
+    db.run(sql, [amount, notes, transaction_date, merchant, category_id, payment_method_id, userId, transactionId], 
+        function(err) {
+            if (err) {
+                console.error('Error updating transaction:', err.message);
+                res.status(500).json({ error: 'Failed to update transaction' });
+            } else if (this.changes === 0) {
+                res.status(404).json({ error: 'Transaction not found' });
+            } else {
+                res.json({ 
+                    message: 'Transaction updated successfully',
+                    changes: this.changes 
+                });
+            }
+        }
+    );
+});
+
+// Delete existing transaction
+apiRouter.delete('/transactions/:id', (req, res) => {
+    console.log(`DELETE /api/transactions/${req.params.id} called`);
+  const transactionId = req.params.id;
+  
+        const sql = 'DELETE FROM expense_transactions WHERE id = ?';
+	
+                db.run(sql, [transactionId], function(err) {
+          if (err) {
+            console.error('Error deleting transaction:', err.message);
+            res.status(500).json({ error: 'Failed to delete transaction' });
+          } else if (this.changes === 0) {
+            res.status(404).json({ error: 'Transaction not found' });
+          } else {
+            res.json({ message: 'Transaction deleted successfully' });
+          }
+        });
+});
+
+// Mount API router under /api
+app.use('/api', apiRouter);
+
+// Serve static files under /amaska-app
+app.use('/amaska-app', express.static(path.join(__dirname, 'public')));
+
+// SPA fallback for client-side routing
+app.get('/amaska-app/*rest', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.listen(8080, () => {
+    console.log('Server is running on http://localhost:8080');
+});
