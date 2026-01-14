@@ -3,6 +3,7 @@ const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs');
 const path = require('path');
+const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const cron = require('node-cron');
 const recurringCron = process.env.RECURRING_CRON || '0 2 * * *';
@@ -40,8 +41,30 @@ const db = new sqlite3.Database(dbPath, (err) => {
 db.run('PRAGMA foreign_keys = ON');
 
 const app = express();
+const apiRouter = express.Router();
 
-// after applyRecurringExpenses is defined:
+// --- Auth / JWT setup ---
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-change-me';
+
+function authenticateJWT(req, res, next) {
+    const authHeader = req.headers.authorization || '';
+    const [scheme, token] = authHeader.split(' ');
+
+    if (scheme !== 'Bearer' || !token) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    jwt.verify(token, JWT_SECRET, (err, payload) => {
+        if (err) {
+            console.error('JWT verify error:', err.message);
+            return res.status(401).json({ error: 'Invalid token' });
+        }
+        req.user = payload; // { userId, username }
+        next();
+    });
+}
+
+// after applyRecurringTemplates is defined:
 cron.schedule(recurringCron, () => {
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -49,8 +72,8 @@ cron.schedule(recurringCron, () => {
     const dd = String(today.getDate()).padStart(2, '0');
     const target = `${yyyy}-${mm}-${dd}`;
     
-    console.log('[cron] Applying recurring expenses up to', target);
-    applyRecurringExpenses(target, (err) => {
+    console.log('[cron] Applying Recurring Templates up to', target);
+    applyRecurringTemplates(target, (err) => {
         if (err) console.error('[cron] Failed:', err.message);
         else console.log('[cron] Done');
     });
@@ -66,6 +89,42 @@ app.use(cors(corsOptions));
 
 app.use(express.json());
 
+// --- Auth routes ---
+// NOTE: for learning purposes this uses only username (no password storage yet).
+// You can later extend the users table with a password hash and verify it here.
+apiRouter.post('/auth/login', (req, res) => {
+    const { username } = req.body || {};
+
+    if (!username) {
+        return res.status(400).json({ error: 'Username is required' });
+    }
+
+    const sql = 'SELECT * FROM users WHERE username = ?';
+    db.get(sql, [username], (err, user) => {
+        if (err) {
+            console.error('Error looking up user for login:', err.message);
+            return res.status(500).json({ error: 'Login failed' });
+        }
+        if (!user) {
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        const token = jwt.sign(
+            { userId: user.id, username: user.username },
+            JWT_SECRET,
+            { expiresIn: '8h' }
+        );
+
+        res.json({
+            token,
+            user: { id: user.id, username: user.username, email: user.email },
+        });
+    });
+});
+
+// All routes defined on apiRouter after this point require a valid JWT
+apiRouter.use(authenticateJWT);
+
 // Utility to advance a YYYY-MM-DD date string by a given frequency/interval
 function addPeriod(dateStr, frequency, interval) {
     const [year, month, day] = dateStr.split('-').map(Number);
@@ -77,6 +136,9 @@ function addPeriod(dateStr, frequency, interval) {
             break;
         case 'weekly':
             d.setDate(d.getDate() + 7 * interval);
+            break;
+        case 'biweekly':
+            d.setDate(d.getDate() + 14 * interval);
             break;
         case 'monthly':
             d.setMonth(d.getMonth() + interval);
@@ -95,13 +157,13 @@ function addPeriod(dateStr, frequency, interval) {
     return `${yyyy}-${mm}-${dd}`;
 }
 
-// Generate recurring transactions up to (and including) a given date
-function applyRecurringExpenses(upToDate, callback) {
+// Generate Recurring Templates transactions up to (and including) a given date
+function applyRecurringTemplates(upToDate, callback) {
     const targetDate = upToDate;
 
-    db.all('SELECT * FROM recurring_expenses', [], (err, rows) => {
+    db.all('SELECT * FROM recurring_templates', [], (err, rows) => {
         if (err) {
-            console.error('Error reading recurring_expenses:', err.message);
+            console.error('Error reading recurring_templates:', err.message);
             return callback(err);
         }
 
@@ -123,7 +185,7 @@ function applyRecurringExpenses(upToDate, callback) {
             const insertOne = () => {
                 if (!shouldContinue()) {
                     // update next_run_date in DB and move to next template
-                    const updateSql = 'UPDATE recurring_expenses SET next_run_date = ? WHERE id = ?';
+                    const updateSql = 'UPDATE recurring_templates SET next_run_date = ? WHERE id = ?';
                     db.run(updateSql, [nextRunDate, rec.id], (updateErr) => {
                         if (updateErr) {
                             console.error('Error updating next_run_date:', updateErr.message);
@@ -135,31 +197,28 @@ function applyRecurringExpenses(upToDate, callback) {
 
                 const insertSql = `
                     INSERT INTO expense_transactions
-                    (user_id, project_amount, amount, notes, transaction_date, merchant, project_category_id, category_id, project_payment_method_id, payment_method_id, recurring_expense_id, created_by)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (projected_amount, amount, notes, transaction_date, merchant, projected_category_id, category_id, projected_payment_method_id, payment_method_id, recurring_template_id, created_by)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 `;
 
                 db.run(
                     insertSql,
                     [
-                        rec.user_id,
-                        rec.project_amount, // planned amount snapshot
-                        rec.project_amount, // initial actual amount equals planned
+                        rec.projected_amount, // planned amount snapshot
+                        rec.projected_amount, // initial actual amount equals planned
                         rec.notes,
                         nextRunDate,
                         rec.merchant,
-
-
-                        rec.project_category_id,
-                        rec.project_category_id,
-                        rec.project_payment_method_id,
-                        rec.project_payment_method_id,
+                        rec.projected_category_id,
+                        rec.projected_category_id,
+                        rec.projected_payment_method_id,
+                        rec.projected_payment_method_id,
                         rec.id,
-                        rec.user_id,
+                        'SYSTEM',
                     ],
                     (insertErr) => {
                         if (insertErr) {
-                            console.error('Error inserting recurring transaction:', insertErr.message);
+                            console.error('Error inserting Recurring Template transaction:', insertErr.message);
                             // Skip further inserts for this template
                             processNext(index + 1);
                             return;
@@ -179,7 +238,7 @@ function applyRecurringExpenses(upToDate, callback) {
     });
 }
 
-app.get('/api/users', (req, res) => {
+apiRouter.get('/users', (req, res) => {
     db.all('SELECT * FROM users', [], (err, rows) => {
         if (err) {
             console.error('Error executing query:', err.message);
@@ -190,7 +249,7 @@ app.get('/api/users', (req, res) => {
     });
 });
 
-app.get('/api/categories', (req, res) => {
+apiRouter.get('/categories', (req, res) => {
     db.all('SELECT * FROM expense_categories', [], (err, rows) => {
         if (err) {
             console.error('Error executing query:', err.message);
@@ -202,9 +261,10 @@ app.get('/api/categories', (req, res) => {
 });
 
 // Create new Category
-app.post('/api/categories', (req, res) => {
+apiRouter.post('/categories', (req, res) => {
     console.log(`POST /api/categories called with body: ${JSON.stringify(req.body, null, 2)}`);
-    const { name, description, color, icon, user_id } = req.body;
+    const { name, description, color, icon } = req.body;
+    const userId = req.user.userId;
     
     const sql = `
         INSERT INTO expense_categories 
@@ -212,7 +272,7 @@ app.post('/api/categories', (req, res) => {
         VALUES (?, ?, ?, ?, ?)
     `;
     
-    db.run(sql, [name, description, color, icon, user_id || null], 
+    db.run(sql, [name, description, color, icon, userId || null], 
         function(err) {
             if (err) {
                 console.error('Error creating category:', err.message);
@@ -228,9 +288,10 @@ app.post('/api/categories', (req, res) => {
 });
 
 // Update existing Category
-app.put('/api/categories/:id', (req, res) => {
+apiRouter.put('/categories/:id', (req, res) => {
     console.log(`PUT /api/categories/${req.params.id} called with body: ${JSON.stringify(req.body, null, 2)}`);
-    const { name, description, color, icon, user_id } = req.body;
+    const { name, description, color, icon } = req.body;
+    const userId = req.user.userId;
     const categoryId = req.params.id;
     
     const sql = `
@@ -244,7 +305,7 @@ app.put('/api/categories/:id', (req, res) => {
         WHERE id = ?
     `;
     
-    db.run(sql, [name, description, color, icon, user_id || null, categoryId], 
+    db.run(sql, [name, description, color, icon, userId || null, categoryId], 
         function(err) {
             if (err) {
                 console.error('Error updating category:', err.message);
@@ -262,7 +323,7 @@ app.put('/api/categories/:id', (req, res) => {
 });
 
 // Delete existing Category
-app.delete('/api/categories/:id', (req, res) => {
+apiRouter.delete('/categories/:id', (req, res) => {
     console.log(`DELETE /api/categories/${req.params.id} called`);
   const categoryId = req.params.id;
   
@@ -280,7 +341,7 @@ app.delete('/api/categories/:id', (req, res) => {
     });
 });
 
-app.get('/api/payment_methods', (req, res) => {
+apiRouter.get('/payment_methods', (req, res) => {
     db.all('SELECT * FROM payment_methods', [], (err, rows) => {
         if (err) {
             console.error('Error executing query:', err.message);
@@ -292,9 +353,10 @@ app.get('/api/payment_methods', (req, res) => {
 });
 
 // Create new payment method
-app.post('/api/payment_methods', (req, res) => {
+apiRouter.post('/payment_methods', (req, res) => {
     console.log(`POST /api/payment_methods called with body: ${JSON.stringify(req.body, null, 2)}`);
-    const { name, description, user_id } = req.body;
+    const { name, description } = req.body;
+    const userId = req.user.userId;
 
     const sql = `
         INSERT INTO payment_methods 
@@ -302,7 +364,7 @@ app.post('/api/payment_methods', (req, res) => {
         VALUES (?, ?, ?)
     `;
 
-    db.run(sql, [name, description, user_id || null], function (err) {
+    db.run(sql, [name, description, userId || null], function (err) {
         if (err) {
             console.error('Error creating payment method:', err.message);
             res.status(500).json({ error: err.message || 'Failed to create payment method' });
@@ -316,9 +378,10 @@ app.post('/api/payment_methods', (req, res) => {
 });
 
 // Update existing payment method
-app.put('/api/payment_methods/:id', (req, res) => {
+apiRouter.put('/payment_methods/:id', (req, res) => {
     console.log(`PUT /api/payment_methods/${req.params.id} called with body: ${JSON.stringify(req.body, null, 2)}`);
-    const { name, description, user_id } = req.body;
+    const { name, description } = req.body;
+    const userId = req.user.userId;
     const paymentMethodId = req.params.id;
 
     const sql = `
@@ -330,7 +393,7 @@ app.put('/api/payment_methods/:id', (req, res) => {
         WHERE id = ?
     `;
 
-    db.run(sql, [name, description, user_id || null, paymentMethodId], function (err) {
+    db.run(sql, [name, description, userId || null, paymentMethodId], function (err) {
         if (err) {
             console.error('Error updating payment method:', err.message);
             res.status(500).json({ error: 'Failed to update payment method' });
@@ -346,7 +409,7 @@ app.put('/api/payment_methods/:id', (req, res) => {
 });
 
 // Delete existing payment method
-app.delete('/api/payment_methods/:id', (req, res) => {
+apiRouter.delete('/payment_methods/:id', (req, res) => {
     console.log(`DELETE /api/payment_methods/${req.params.id} called`);
     const paymentMethodId = req.params.id;
 
@@ -364,37 +427,47 @@ app.delete('/api/payment_methods/:id', (req, res) => {
     });
 });
 
-// Recurring expenses CRUD
-app.get('/api/recurring_expenses', (req, res) => {
-    db.all('SELECT * FROM recurring_expenses', [], (err2, rows) => {
+// Recurring Templates CRUD
+apiRouter.get('/recurring_templates', (req, res) => {
+    db.all('SELECT * FROM recurring_templates', [], (err2, rows) => {
         if (err2) {
-            console.error('Error fetching recurring_expenses:', err2.message);
-            res.status(500).json({ error: 'Failed to retrieve recurring expenses' });
+            console.error('Error fetching recurring_templates:', err2.message);
+            res.status(500).json({ error: 'Failed to retrieve Recurring Templates' });
         } else {
             res.json(rows);
         }
     });
 });
-
-app.post('/api/recurring_expenses', (req, res) => {
+apiRouter.get('/recurring_template_related_transactions/:id', (req, res) => {
+    const { id } = req.params;
+    db.all('SELECT * FROM expense_transactions WHERE recurring_template_id = ?', [id], (err2, rows) => {
+        if (err2) {
+            console.error('Error fetching related transactions:', err2.message);
+            res.status(500).json({ error: 'Failed to retrieve related transactions' });
+        } else {
+            res.json(rows);
+        }
+    });
+});
+apiRouter.post('/recurring_templates', (req, res) => {
     const {
-        user_id = 1,
         name,
-        project_amount,
+        projected_amount,
         notes,
         merchant,
-        project_category_id,
-        project_payment_method_id,
+        projected_category_id,
+        projected_payment_method_id,
         frequency,
         interval = 1,
         start_date,
         end_date,
     } = req.body;
+    const userId = req.user.userId;
 
     const sql = `
-        INSERT INTO recurring_expenses
-        (user_id, name, project_amount, notes, merchant, project_category_id, project_payment_method_id, frequency, interval, start_date, end_date, next_run_date, created_by)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO recurring_templates
+        (name, projected_amount, notes, merchant, projected_category_id, projected_payment_method_id, frequency, interval, start_date, end_date, next_run_date, created_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const nextRun = start_date;
@@ -402,104 +475,102 @@ app.post('/api/recurring_expenses', (req, res) => {
     db.run(
         sql,
         [
-            user_id,
             name,
-            project_amount,
+            projected_amount,
             notes,
             merchant,
-            project_category_id,
-            project_payment_method_id,
+            projected_category_id,
+            projected_payment_method_id,
             frequency,
             interval,
             start_date,
             end_date || null,
             nextRun,
-            user_id,
+            userId,
         ],
         function (insertErr) {
             if (insertErr) {
-                console.error('Error creating recurring expense:', insertErr.message);
-                res.status(500).json({ error: 'Failed to create recurring expense' });
+                console.error('Error creating Recurring Template:', insertErr.message);
+                res.status(500).json({ error: 'Failed to create Recurring Template' });
             } else {
-                res.status(201).json({ message: 'Recurring expense created', id: this.lastID });
+                res.status(201).json({ message: 'Recurring Template created', id: this.lastID });
             }
         }
     );
 });
 
-app.put('/api/recurring_expenses/:id', (req, res) => {
+apiRouter.put('/recurring_templates/:id', (req, res) => {
     const { id } = req.params;
     const {
-        user_id = 1,
         name,
-        project_amount,
+        projected_amount,
         notes,
         merchant,
-        project_category_id,
-        project_payment_method_id,
+        projected_category_id,
+        projected_payment_method_id,
         frequency,
         interval = 1,
         start_date,
         end_date,
-        next_run_date,
+        enabled,
     } = req.body;
+    const userId = req.user.userId;
 
     const sql = `
-        UPDATE recurring_expenses
-        SET user_id = ?, name = ?, project_amount = ?, notes = ?, merchant = ?, project_category_id = ?, project_payment_method_id = ?,
-            frequency = ?, interval = ?, start_date = ?, end_date = ?, next_run_date = ?, modified_at = CURRENT_TIMESTAMP
+        UPDATE recurring_templates
+        SET name = ?, projected_amount = ?, notes = ?, merchant = ?, projected_category_id = ?, projected_payment_method_id = ?,
+            frequency = ?, interval = ?, start_date = ?, end_date = ?, enabled = ?, modified_at = CURRENT_TIMESTAMP, modified_by = ?
         WHERE id = ?
     `;
-
     db.run(
         sql,
         [
-            user_id,
             name,
-            project_amount,
+            projected_amount,
             notes,
             merchant,
-            project_category_id,
-            project_payment_method_id,
+            projected_category_id,
+            projected_payment_method_id,
             frequency,
             interval,
             start_date,
             end_date || null,
-            next_run_date || start_date,
-            id,
+            enabled ? 1 : 0,
+            userId,
+            id
         ],
         function (updateErr) {
             if (updateErr) {
-                console.error('Error updating recurring expense:', updateErr.message);
-                res.status(500).json({ error: 'Failed to update recurring expense' });
+                console.error('Error updating Recurring Template:', updateErr.message);
+                res.status(500).json({ error: 'Failed to update Recurring Template' });
             } else if (this.changes === 0) {
-                res.status(404).json({ error: 'Recurring expense not found' });
+                res.status(404).json({ error: 'Recurring Template not found' });
             } else {
-                res.json({ message: 'Recurring expense updated', changes: this.changes });
+                res.json({ message: 'Recurring Template updated', changes: this.changes });
             }
         }
     );
 });
 
-app.delete('/api/recurring_expenses/:id', (req, res) => {
-    const { id } = req.params;
+// apiRouter.delete('/recurring_templates/:id', (req, res) => {
+//     const { id } = req.params;
 
-    const sql = 'DELETE FROM recurring_expenses WHERE id = ?';
+//     const sql = 'DELETE FROM recurring_templates WHERE id = ?';
 
-    db.run(sql, [id], function (deleteErr) {
-        if (deleteErr) {
-            console.error('Error deleting recurring expense:', deleteErr.message);
-            res.status(500).json({ error: 'Failed to delete recurring expense' });
-        } else if (this.changes === 0) {
-            res.status(404).json({ error: 'Recurring expense not found' });
-        } else {
-            res.json({ message: 'Recurring expense deleted' });
-        }
-    });
-});
+//     db.run(sql, [id], function (deleteErr) {
+//         if (deleteErr) {
+//             console.error('Error deleting Recurring Template:', deleteErr.message);
+//             res.status(500).json({ error: 'Failed to delete Recurring Template' });
+//         } else if (this.changes === 0) {
+//             res.status(404).json({ error: 'Recurring Template not found' });
+//         } else {
+//             res.json({ message: 'Recurring Template deleted' });
+//         }
+//     });
+// });
 
-// Manually trigger application of recurring expenses up to a given date (defaults to today)
-app.post('/api/recurring_expenses/apply', (req, res) => {
+// Manually trigger application of Recurring Templates up to a given date (defaults to today)
+apiRouter.post('/recurring_templates/apply', (req, res) => {
     const { upToDate } = req.body || {};
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -507,15 +578,15 @@ app.post('/api/recurring_expenses/apply', (req, res) => {
     const dd = String(today.getDate()).padStart(2, '0');
     const target = upToDate || `${yyyy}-${mm}-${dd}`;
 
-    applyRecurringExpenses(target, (err) => {
+    applyRecurringTemplates(target, (err) => {
         if (err) {
-            return res.status(500).json({ error: 'Failed to apply recurring expenses' });
+            return res.status(500).json({ error: 'Failed to apply Recurring Templates' });
         }
-        res.json({ message: 'Recurring expenses applied', upToDate: target });
+        res.json({ message: 'Recurring Templates applied', upToDate: target });
     });
 });
 
-app.get('/api/transactions', (req, res) => {
+apiRouter.get('/transactions', (req, res) => {
     const { start_date, end_date } = req.query;
             db.all(`SELECT 
                 t.id AS transaction_id, 
@@ -527,10 +598,6 @@ app.get('/api/transactions', (req, res) => {
                 t.created_by AS transaction_created_by,
                 t.modified_at AS transaction_modified_at,
                 t.modified_by AS transaction_modified_by,
-                u.id AS user_id, 
-                u.username, 
-                u.email, 
-                u.created_at AS user_created_at, 
                 c.id AS category_id, 
                 c.name AS category_name, 
                 c.description AS category_description, 
@@ -538,7 +605,6 @@ app.get('/api/transactions', (req, res) => {
                 p.name AS payment_method_name, 
                 p.description AS payment_method_description 
             FROM expense_transactions t 
-            JOIN users u ON t.user_id = u.id 
             JOIN expense_categories c ON t.category_id = c.id 
             JOIN payment_methods p ON t.payment_method_id = p.id
             WHERE t.transaction_date BETWEEN ? AND ?
@@ -554,17 +620,18 @@ app.get('/api/transactions', (req, res) => {
 
 
 // Create new transaction
-app.post('/api/transactions', (req, res) => {
+apiRouter.post('/transactions', (req, res) => {
     console.log(`POST /api/transactions called with body: ${JSON.stringify(req.body, null, 2)}`);
-    const { user_id, amount, notes, transaction_date, merchant, category_id, payment_method_id } = req.body;
+    const { amount, notes, transaction_date, merchant, category_id, payment_method_id } = req.body;
+    const userId = req.user.userId;
     
     const sql = `
         INSERT INTO expense_transactions 
-        (user_id, amount, notes, transaction_date, merchant, category_id, payment_method_id, created_by)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        (amount, notes, transaction_date, merchant, category_id, payment_method_id, created_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
     
-    db.run(sql, [user_id, amount, notes, transaction_date, merchant, category_id, payment_method_id, user_id], 
+    db.run(sql, [amount, notes, transaction_date, merchant, category_id, payment_method_id, userId], 
         function(err) {
             if (err) {
                 console.error('Error creating transaction:', err.message);
@@ -580,9 +647,10 @@ app.post('/api/transactions', (req, res) => {
 });
 
 // Update existing transaction
-app.put('/api/transactions/:id', (req, res) => {
+apiRouter.put('/transactions/:id', (req, res) => {
     console.log(`PUT /api/transactions/${req.params.id} called with body: ${JSON.stringify(req.body, null, 2)}`);
     const { amount, notes, transaction_date, merchant, category_id, payment_method_id } = req.body;
+    const userId = req.user.userId;
     const transactionId = req.params.id;
     
     const sql = `
@@ -593,11 +661,12 @@ app.put('/api/transactions/:id', (req, res) => {
             merchant = ?,
             category_id = ?,
             payment_method_id = ?,
-            modified_at = CURRENT_TIMESTAMP
+            modified_at = CURRENT_TIMESTAMP,
+            modified_by = ?
         WHERE id = ?
     `;
     
-    db.run(sql, [amount, notes, transaction_date, merchant, category_id, payment_method_id, transactionId], 
+    db.run(sql, [amount, notes, transaction_date, merchant, category_id, payment_method_id, userId, transactionId], 
         function(err) {
             if (err) {
                 console.error('Error updating transaction:', err.message);
@@ -615,13 +684,13 @@ app.put('/api/transactions/:id', (req, res) => {
 });
 
 // Delete existing transaction
-app.delete('/api/transactions/:id', (req, res) => {
+apiRouter.delete('/transactions/:id', (req, res) => {
     console.log(`DELETE /api/transactions/${req.params.id} called`);
   const transactionId = req.params.id;
   
         const sql = 'DELETE FROM expense_transactions WHERE id = ?';
 	
-        db.run(sql, [transactionId], function(err) {
+                db.run(sql, [transactionId], function(err) {
           if (err) {
             console.error('Error deleting transaction:', err.message);
             res.status(500).json({ error: 'Failed to delete transaction' });
@@ -632,6 +701,9 @@ app.delete('/api/transactions/:id', (req, res) => {
           }
         });
 });
+
+// Mount API router under /api
+app.use('/api', apiRouter);
 
 // Serve static files under /amaska-app
 app.use('/amaska-app', express.static(path.join(__dirname, 'public')));

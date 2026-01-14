@@ -1,10 +1,12 @@
-import './App.css'
-import MyLayout from './components/MyLayout.jsx';
+import './App.css';
+import { Outlet } from 'react-router-dom';
+import FloatingMenu from './components/FloatingMenu';
 
 function App() {
     return (
         <div className="App">
-            <MyLayout />
+            <FloatingMenu />
+            <Outlet />
         </div>
     );
 }

@@ -56,43 +56,39 @@ INSERT INTO payment_methods (name, description, created_by) VALUES ('Costco (502
 
 CREATE TABLE IF NOT EXISTS expense_transactions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    project_amount DECIMAL(10, 2), -- planned amount at generation time
+    projected_amount DECIMAL(10, 2), -- planned amount at generation time
     amount DECIMAL(10, 2) NOT NULL, -- actual amount (can be edited later)
     notes VARCHAR(255),
     transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    project_category_id INTEGER, -- planned category at generation time
+    projected_category_id INTEGER, -- planned category at generation time
     category_id INTEGER NOT NULL,
     merchant VARCHAR(100),
-    project_payment_method_id INTEGER, -- planned payment method at generation time
+    projected_payment_method_id INTEGER, -- planned payment method at generation time
     payment_method_id INTEGER,
-    recurring_expense_id INTEGER,
+    recurring_template_id INTEGER,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_by INTEGER,
     modified_at TIMESTAMP,
     modified_by INTEGER,
-    FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (category_id) REFERENCES expense_categories(id),
     FOREIGN KEY (payment_method_id) REFERENCES payment_methods(id),
-    FOREIGN KEY (project_category_id) REFERENCES expense_categories(id),
-    FOREIGN KEY (project_payment_method_id) REFERENCES payment_methods(id),
-    FOREIGN KEY (recurring_expense_id) REFERENCES recurring_expenses(id) ON DELETE SET NULL,
+    FOREIGN KEY (projected_category_id) REFERENCES expense_categories(id),
+    FOREIGN KEY (projected_payment_method_id) REFERENCES payment_methods(id),
+    FOREIGN KEY (recurring_template_id) REFERENCES recurring_templates(id) ON DELETE SET NULL,
     FOREIGN KEY (created_by) REFERENCES users(id),
     FOREIGN KEY (modified_by) REFERENCES users(id)
 );
 
--- Recurring expenses: template of future transactions
-CREATE TABLE IF NOT EXISTS recurring_expenses (
+CREATE TABLE IF NOT EXISTS recurring_templates (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name VARCHAR(100) NOT NULL,
     enabled BOOLEAN NOT NULL DEFAULT 1,
-    user_id INTEGER NOT NULL,
-    project_amount DECIMAL(10, 2) NOT NULL,
+    projected_amount DECIMAL(10, 2) NOT NULL,
     notes VARCHAR(255),
     merchant VARCHAR(100) NOT NULL,
-    project_category_id INTEGER NOT NULL,
-    project_payment_method_id INTEGER NOT NULL,
-    frequency VARCHAR(20) NOT NULL, -- 'daily', 'weekly', 'monthly', 'yearly'
+    projected_category_id INTEGER NOT NULL,
+    projected_payment_method_id INTEGER NOT NULL,
+    frequency VARCHAR(20) NOT NULL, -- 'daily', 'weekly', 'biweekly', 'monthly', 'yearly'
     interval INTEGER NOT NULL DEFAULT 1, -- every N days/weeks/months/years
     start_date DATE NOT NULL,
     end_date DATE,
@@ -101,9 +97,8 @@ CREATE TABLE IF NOT EXISTS recurring_expenses (
     created_by INTEGER,
     modified_at TIMESTAMP,
     modified_by INTEGER,
-    FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (project_category_id) REFERENCES expense_categories(id),
-    FOREIGN KEY (project_payment_method_id) REFERENCES payment_methods(id),
+    FOREIGN KEY (projected_category_id) REFERENCES expense_categories(id),
+    FOREIGN KEY (projected_payment_method_id) REFERENCES payment_methods(id),
     FOREIGN KEY (created_by) REFERENCES users(id),
     FOREIGN KEY (modified_by) REFERENCES users(id)
 );

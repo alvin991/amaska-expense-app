@@ -2,7 +2,6 @@ import axios from 'axios';
 
 export async function saveTransaction(transaction) {
   const payload = {
-    user_id: 1,
     amount: parseFloat(transaction.amount) || 0,
     notes: transaction.notes,
     transaction_date: transaction.transaction_date || transaction.date,
@@ -20,4 +19,9 @@ export async function saveTransaction(transaction) {
 
 export async function deleteTransactionById(id) {
   await axios.delete(`/api/transactions/${id}`);
+}
+
+export async function getRecurringTemplateRelatedTransactions(id) {
+  const res = await axios.get(`/api/recurring_template_related_transactions/${id}`);
+  return res.data;
 }

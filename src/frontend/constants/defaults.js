@@ -1,19 +1,32 @@
-////jsx
-// filepath: c:\alvin\code\react\amaska-expense-app\src\frontend\constants\defaults.js
 import { formatLocalDate } from '../utils/dateUtils';
 
 // Transaction
 export const DEFAULT_TRANSACTION = {
   transaction_id: null,
+  projected_amount: 0.0,
   amount: 0.0,
   merchant: '',
-  category: '',
-  date: formatLocalDate(new Date()),   // local yyyy-mm-dd
+  projected_category_id: '',
+  projected_payment_method_id: '',
+  transaction_date: formatLocalDate(new Date()),   // local yyyy-mm-dd
   notes: '',
   category_id: '',
   category_name: '',
   payment_method_id: '',
   payment_method_name: '',
+};
+
+export const DEFAULT_RECURRING_TEMPLATE = {
+  id: null,
+  name: '',
+  projected_amount: 0.0,
+  merchant: '',
+  projected_payment_method_id: '',
+  start_date: formatLocalDate(new Date()), // local yyyy-mm-dd
+  frequency: 'monthly',
+  interval: 1,
+  notes: '',
+  enabled: true,
 };
 
 // Category

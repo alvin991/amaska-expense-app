@@ -1,6 +1,3 @@
-////javascript
-// filepath: c:\alvin\code\react\amaska-expense-app\src\frontend\components\dashboard\DashboardCharts.jsx
-// ...existing code...
 import PieChartWithCustomizedLabel from '../PieChart1';
 import PieChartHasTextInside from '../PieChart2';
 
