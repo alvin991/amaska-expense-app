@@ -18,6 +18,7 @@ const categoriesRoutes = require('./routes/categories');
 const paymentMethodsRoutes = require('./routes/payment_methods');
 const recurringTemplatesRoutes = require('./routes/recurring_templates');
 const transactionsRoutes = require('./routes/transactions');
+const { JWT_SECRET } = require('./config/secrets');
 
 const app = express();
 const apiRouter = express.Router();

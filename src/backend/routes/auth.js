@@ -1,7 +1,7 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const { db } = require('../config/database');
-const { JWT_SECRET } = require('../config/auth');
+const { JWT_SECRET } = require('../config/secrets');
 
 const router = express.Router();
 
