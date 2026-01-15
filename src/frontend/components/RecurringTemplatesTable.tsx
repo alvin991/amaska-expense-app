@@ -73,9 +73,15 @@ function RecurringTemplatesTable({ data, onRowDoubleClick }: RecurringTemplatesT
                   {re.enabled ? '✓' : '✗'}
                 </span>
               </td>
-              <td>{re.name}</td>
-              <td>{re.merchant}</td>
-              <td>{formatRecurrence(re.interval, re.frequency)}</td>
+              <td
+                className="text-start ps-4" 
+              >{re.name}</td>
+              <td
+                className="text-start ps-4" 
+              >{re.merchant}</td>
+              <td
+                className="text-start ps-4" 
+              >{formatRecurrence(re.interval, re.frequency)}</td>
               <td>{re.start_date || ''}</td>
               <td>{re.end_date || ''}</td>
               <td>{re.next_run_date || ''}</td>
