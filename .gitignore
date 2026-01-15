@@ -25,3 +25,4 @@ src/db/*.db
 *.njsproj
 *.sln
 *.sw?
+.env
