@@ -29,6 +29,7 @@ const ModalBase = ({
   // lifecycle
   onHide,
 }) => {
+
   const {
     categories,
     paymentMethods,
@@ -36,7 +37,6 @@ const ModalBase = ({
     selectedTransaction,
     selectedRecurringTemplate,
     selectedRecurringTemplateRelatedTransactions,
-    transactions,
     setSelectedTransaction,
   } = useExpenseStore();
 
@@ -46,6 +46,8 @@ const ModalBase = ({
   const [propCategory, setPropCategory] = useState(DEFAULT_CATEGORY);
   const [isDirty, setIsDirty] = useState(false);
   const [navStack, setNavStack] = useState([{ page: effectiveRootPage, params: null }]);
+  // formDataDraft for TransactionForm
+  const [formDataDraft, setFormDataDraft] = useState(null);
   
   const currentEntry = navStack[navStack.length - 1];
   const currentPage = currentEntry?.page ?? rootPage;
@@ -156,6 +158,8 @@ const ModalBase = ({
             onHide={actuallyHide}
             onDelete={confirm.openDeleteTransaction}
             onDirtyChange={setIsDirty}
+            formDataDraft={formDataDraft}
+            setFormDataDraft={setFormDataDraft}
           />
         );
 
@@ -210,7 +214,6 @@ const ModalBase = ({
         
         // Handle category selection by updating navigation params
         const handleCategorySelected = (categoryId) => {
-          console.log('ModalBase - Category selected:', categoryId);
           // Navigate back to the form with selectedCategoryId in params
           setNavStack((prev) => {
             const newStack = prev.slice(0, -1); // Remove categoryList page

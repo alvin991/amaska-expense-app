@@ -16,6 +16,8 @@ function TransactionForm({
   onHide,
   onDelete,
   onDirtyChange,
+  formDataDraft,
+  setFormDataDraft,
 }) {
 
   const {
@@ -31,13 +33,28 @@ function TransactionForm({
     isSystemGenerated
   } = useTransactionForm(transaction, onDirtyChange);
 
-  const { openCategoryList } = useCategoryListPicker(navigation);
+  const { openCategoryList } = useCategoryListPicker({
+    ...navigation,
+    // Wrap openCategoryList to save draft before navigating
+    navigate: (...args) => {
+      if (setFormDataDraft) {
+        setFormDataDraft(formData);
+      }
+      navigation.navigate(...args);
+    }
+  });
+
+  // On mount or when coming back from CategoryListPage, restore formData from draft if available
+  React.useEffect(() => {
+    if (formDataDraft) {
+      setFormData(formDataDraft);
+    }
+  }, [formDataDraft]);
 
   // Watch for selectedCategoryId from navigation params (when coming back from CategoryListPage)
   React.useEffect(() => {
     const selectedCategoryId = currentParams?.selectedCategoryId;
     if (selectedCategoryId) {
-      // console.log('TransactionForm - Received selectedCategoryId from navigation:', selectedCategoryId);
       setFormData((prev) => ({
         ...prev,
         category: selectedCategoryId
