@@ -1,15 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import DashboardHeader from './dashboard/DashboardHeader';
-import DashboardCharts from './dashboard/DashboardCharts';
-import MySearchBox from './MySearchBox';
-import DateGroupedTable from './DateGroupedTable.jsx';
 import TransactionsTab from './TransactionsTab.jsx';
 import { formatLocalDate } from '../utils/dateUtils';
 import useExpenseStore from '../store/useExpenseStore';
-import { data } from 'react-router-dom';
 
 function TransactionsController({ onOpenModal, registerRefreshTransactions }) {
+
+  // transactions means non-recurring transactions here ( recurring_template_id is null )
   const {
     categories,
     transactions,
@@ -171,70 +168,6 @@ function TransactionsController({ onOpenModal, registerRefreshTransactions }) {
 
   return (
     <>
-      {/* <DashboardHeader
-        monthName={monthName}
-        budgetByMonth={BudgetByMonth}
-        periodTotalAmount={periodTotalAmount}
-        currentYear={currentYear}
-        currentMonth={currentMonth}
-        onChangeMonth={handleChangeMonth}
-      />
-
-      <div className="row line-break" style={{ height: '2vh', width: '100%' }} />
-
-      <DashboardCharts
-        leftToSpendData={leftToSpendData}
-        leftToSpend={leftToSpend}
-        chartDataByCategory={chartDataByCategory}
-        chartDataByPaymentMethod={chartDataByPaymentMethod}
-      />
-
-      <div className="row line-break" style={{ height: '2vh', width: '100%' }} />
-
-      <div
-        id="bottom-panel"
-        className="row"
-        style={{
-          height: '60vh',
-          width: '100%',
-          backgroundColor: 'lightblue',
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
-        <h4 style={{ margin: 0, marginBottom: '0.5rem' }}>TRANSACTIONS</h4>
-
-        <MySearchBox
-          onQueryChange={setTransactionSearchQuery}
-          placeholder="Search Merchant, Category or Payment Method"
-        />
-
-        <div
-          style={{
-            paddingLeft: '1.7rem',
-            paddingRight: '1.7rem',
-            marginBottom: '0.5rem',
-          }}
-        >
-          <button
-            type="button"
-            className="btn btn-primary w-100"
-            onClick={handleNewTransactionClick}
-          >
-            New Transaction
-          </button>
-        </div>
-
-        <div style={{ flex: 1, overflow: 'auto', paddingRight: '0px !important' }}>
-          <DateGroupedTable
-            data={filteredTransactions}
-            onRowDoubleClick={handleRowDoubleClick}
-            className="position-fixed"
-            categories={categories}
-          />
-        </div>
-      </div> */}
-
       <TransactionsTab
         dashboardHeader={{
             monthName,

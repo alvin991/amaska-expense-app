@@ -27,8 +27,9 @@ router.get('/', (req, res) => {
     FROM expense_transactions t 
     JOIN expense_categories c ON t.category_id = c.id 
     JOIN payment_methods p ON t.payment_method_id = p.id
-    WHERE t.transaction_date BETWEEN ? AND ?
-    ORDER BY t.transaction_date DESC, t.id DESC;`, [start_date, end_date], (err, rows) => {
+        WHERE t.transaction_date BETWEEN ? AND ?
+        AND t.recurring_template_id IS NULL
+        ORDER BY t.transaction_date DESC, t.id DESC;`, [start_date, end_date], (err, rows) => {
         if (err) {
             console.error('Error executing query:', err.message);
             res.status(500).json({ error: 'Failed to retrieve data' });
