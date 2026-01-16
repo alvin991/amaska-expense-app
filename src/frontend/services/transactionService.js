@@ -25,3 +25,8 @@ export async function getRecurringTemplateRelatedTransactions(id) {
   const res = await axios.get(`/api/recurring_template_related_transactions/${id}`);
   return res.data;
 }
+
+export async function getTransactions(params) {
+  const response = await axios.get('/api/transactions', { params });
+  return response.data;
+}

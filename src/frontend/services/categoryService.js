@@ -18,3 +18,8 @@ export async function saveCategory(category) {
 export async function deleteCategoryById(id) {
   await axios.delete(`/api/categories/${id}`);
 }
+
+export async function fetchCategories() {
+  const response = await axios.get('/api/categories');
+  return response.data;
+};

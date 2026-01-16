@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
 import TransactionsTab from './TransactionsTab.jsx';
 import { formatLocalDate } from '../utils/dateUtils';
 import useExpenseStore from '../store/useExpenseStore';
+import { getTransactions } from '../services/transactionService.js';
 
 function TransactionsController({ onOpenModal, registerRefreshTransactions }) {
 
@@ -57,8 +57,8 @@ function TransactionsController({ onOpenModal, registerRefreshTransactions }) {
         start_date: formatLocalDate(firstDayOfMonth),
         end_date: formatLocalDate(lastDayOfMonth),
       };
-      const response = await axios.get('/api/transactions', { params: queryParams });
-      const formattedTransactions = JSON.parse(JSON.stringify(response.data));
+      const response = await getTransactions(queryParams);
+      const formattedTransactions = JSON.parse(JSON.stringify(response));
 
       setTransactions(formattedTransactions);
       setCategoriesUsed(new Set(formattedTransactions.map((tx) => tx.category_id)));

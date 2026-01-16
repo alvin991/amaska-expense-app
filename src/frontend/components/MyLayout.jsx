@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
-import axios from 'axios';
 import ModalBase from './ModalBase.jsx';
 import BaseTabsPage from './BaseTabsPage';
 import useExpenseStore from '../store/useExpenseStore';
 import TransactionsController from './TransactionsController.jsx';
 import RecurringController from './RecurringController.jsx';
+import { fetchUsers } from '../services/userService';
+import { fetchCategories } from '../services/categoryService.js';
+import { fetchPaymentMethods } from '../services/paymentMethodService';
 
 function MyLayout() {
     const [activeTab, setActiveTab] = useState('/expenses-main');
@@ -24,12 +26,10 @@ function MyLayout() {
 
     const isRecurringTab = activeTab === '/expenses-second';
 
-    // call APIs to load data
-    // fetch users from API
-    const fetchUsers = async () => {
+    const handleFetchUsers = async () => {
         try {
-            const response = await axios.get('/api/users'); // use relative URL so vite proxy handles it
-            setUsers(response.data);
+            const response = await fetchUsers();
+            setUsers(response);
         } catch (error) {
             setError(error.message);
         } finally {
@@ -37,10 +37,10 @@ function MyLayout() {
         }
     };
 
-    const fetchCategories = async () => {
+    const handleFetchCategories = async () => {
         try {
-            const response = await axios.get('/api/categories'); // use relative URL so vite proxy handles it
-            setCategories(response.data);
+            const response = await fetchCategories();
+            setCategories(response);
         } catch (error) {
             setError(error.message);
         } finally {
@@ -48,10 +48,10 @@ function MyLayout() {
         }
     };
 
-    const fetchPaymentMethods = async () => {
+    const handleFetchPaymentMethods = async () => {
         try {
-            const response = await axios.get('/api/payment_methods'); // use relative URL so vite proxy handles it
-            setPaymentMethods(response.data);
+            const response = await fetchPaymentMethods();
+            setPaymentMethods(response);
         } catch (error) {
             setError(error.message);
         } finally {
@@ -60,17 +60,17 @@ function MyLayout() {
     };
 
     const refreshTransactions      = async () => { if (refreshTransactionsFn) { await refreshTransactionsFn(); } };
-    const refreshCategories        = async () => { await fetchCategories(); };
-    const refreshPaymentMethods    = async () => { await fetchPaymentMethods(); };
+    const refreshCategories        = async () => { await handleFetchCategories(); };
+    const refreshPaymentMethods    = async () => { await handleFetchPaymentMethods(); };
     const refreshRecurringTemplates = async () => { if (refreshRecurringFn) { await refreshRecurringFn(); } };
 
     useEffect(() => {
         const fetchAllData = async () => {
             try {
                 await Promise.all([
-                    fetchUsers(),
-                    fetchPaymentMethods(),
-                    fetchCategories(),
+                    handleFetchUsers(),
+                    handleFetchPaymentMethods(),
+                    handleFetchCategories(),
                 ]);
             } catch (err) {
                 setError(err);
