@@ -182,6 +182,8 @@ const ModalBase = ({
               navigation.navigate('recurringRelatedTransactions', { id: effectiveTemplate.id });
             }}
             onDirtyChange={setIsDirty}
+            formDataDraft={formDataDraft}
+            setFormDataDraft={setFormDataDraft}
           />
         );
       }

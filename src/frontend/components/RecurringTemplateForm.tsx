@@ -21,6 +21,8 @@ interface RecurringTemplateFormProps {
   relatedCount: number;
   onViewRelated?: () => void;
   onDirtyChange?: (isDirty: boolean) => void;
+  formDataDraft?: any;
+  setFormDataDraft?: React.Dispatch<React.SetStateAction<any>>;
 }
 
 function RecurringTemplateForm({
@@ -34,6 +36,8 @@ function RecurringTemplateForm({
   relatedCount,
   onViewRelated,
   onDirtyChange,
+  formDataDraft,
+  setFormDataDraft,
 }: RecurringTemplateFormProps) {
   // console.log('Rendering RecurringTemplateForm with template:', template);
   const {
@@ -51,7 +55,23 @@ function RecurringTemplateForm({
     isDirty,
   } = useRecurringTemplateForm(template, onDirtyChange);
 
-  const { openCategoryList } = useCategoryListPicker(navigation);
+  const { openCategoryList } = useCategoryListPicker({
+    ...navigation,
+    // Wrap openCategoryList to save draft before navigating
+    navigate: (...args: any[]) => {
+      if (setFormDataDraft) {
+        setFormDataDraft(formData);
+      }
+      navigation.navigate(...args);
+    }
+  });
+
+  // On mount or when coming back from CategoryListPage, restore formData from draft if available
+  React.useEffect(() => {
+    if (formDataDraft) {
+      setFormData(formDataDraft);
+    }
+  }, [formDataDraft]);
 
   // Watch for selectedCategoryId from navigation params (when coming back from CategoryListPage)
   React.useEffect(() => {
@@ -259,7 +279,10 @@ function RecurringTemplateForm({
               variant="outline-primary"
 
               disabled={relatedCount === 0}
-              onClick={onViewRelated}
+              onClick={() => {
+                if (setFormDataDraft) setFormDataDraft(formData);
+                if (onViewRelated) onViewRelated();
+              }}
             >
               View all related transactions
               {typeof relatedCount === 'number' ? ` (${relatedCount})` : ''}
