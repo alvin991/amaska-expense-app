@@ -4,6 +4,7 @@ import './TransactionForm.css';
 import CategoryPickerField from './CategoryPickerField';
 import useCategoryListPicker from '../hooks/useCategoryListPicker';
 import useTransactionForm from '../hooks/useTransactionForm';
+import useTransactionFormNew from '../hooks/useTransactionFormNew';
 import useTransactionSubmit from '../hooks/useTransactionSubmit';
 
 function TransactionForm({
@@ -20,6 +21,18 @@ function TransactionForm({
   setFormDataDraft,
 }) {
 
+  // const {
+  //   formData,
+  //   setFormData,
+  //   errors,
+  //   setErrors,
+  //   amountInputRef,
+  //   amountInputHandlers,
+  //   handleChange,
+  //   handlePaymentMethodChange,
+  //   isDirty,
+  //   isSystemGenerated
+  // } = useTransactionForm(transaction, onDirtyChange);
   const {
     formData,
     setFormData,
@@ -28,39 +41,40 @@ function TransactionForm({
     amountInputRef,
     amountInputHandlers,
     handleChange,
-    handlePaymentMethodChange,
     isDirty,
-    isSystemGenerated
-  } = useTransactionForm(transaction, onDirtyChange);
+    isSystemGenerated,
+    openCategoryList
+  } = useTransactionFormNew(transaction, onDirtyChange, navigation, currentParams, formDataDraft, setFormDataDraft);
 
-  const { openCategoryList } = useCategoryListPicker({
-    ...navigation,
-    // Wrap openCategoryList to save draft before navigating
-    navigate: (...args) => {
-      if (setFormDataDraft) {
-        setFormDataDraft(formData);
-      }
-      navigation.navigate(...args);
-    }
-  });
+  // const { openCategoryList } = useCategoryListPicker({
+  //   ...navigation,
+  //   // Wrap openCategoryList to save draft before navigating
+  //   navigate: (...args) => {
+  //     if (setFormDataDraft) {
+  //       setFormDataDraft(formData);
+  //     }
+  //     navigation.navigate(...args);
+  //   }
+  // });
 
   // On mount or when coming back from CategoryListPage, restore formData from draft if available
-  React.useEffect(() => {
-    if (formDataDraft) {
-      setFormData(formDataDraft);
-    }
-  }, [formDataDraft]);
+  // React.useEffect(() => {
+  //   if (formDataDraft) {
+  //     setFormData(formDataDraft);
+  //   }
+  // }, [formDataDraft]);
 
   // Watch for selectedCategoryId from navigation params (when coming back from CategoryListPage)
-  React.useEffect(() => {
-    const selectedCategoryId = currentParams?.selectedCategoryId;
-    if (selectedCategoryId) {
-      setFormData((prev) => ({
-        ...prev,
-        category: selectedCategoryId
-      }));
-    }
-  }, [currentParams?.selectedCategoryId]);
+  // React.useEffect(() => {
+  //   const selectedCategoryId = currentParams?.selectedCategoryId;
+  //   if (selectedCategoryId) {
+  //     setFormData((prev) => ({
+  //       ...prev,
+  //       // category: selectedCategoryId,
+  //       category_id: selectedCategoryId
+  //     }));
+  //   }
+  // }, [currentParams?.selectedCategoryId]);
 
   const { handleSubmit } = useTransactionSubmit({
     transaction,
@@ -75,7 +89,7 @@ function TransactionForm({
       <Form onSubmit={handleSubmit}>
         {/* Amount */}
         <Form.Group className="mb-3">
-          <Form.Label>Amount</Form.Label>
+          <Form.Label>Amount {isDirty ? 'is dirty' : 'is clean'}</Form.Label>
           <InputGroup>
             <InputGroup.Text>$</InputGroup.Text>
             <Form.Control
@@ -127,9 +141,9 @@ function TransactionForm({
         <Form.Group className="mb-3">
           <Form.Label>Payment Method</Form.Label>
           <Form.Select
-            name="paymentMethod"
-            value={formData.paymentMethod}
-            onChange={handlePaymentMethodChange}
+            name="payment_method_id"
+            value={formData.payment_method_id != null ? String(formData.payment_method_id) : ""}
+            onChange={handleChange}
             isInvalid={!!errors.paymentMethod}
             disabled={isSystemGenerated}
             style={isSystemGenerated ? { background: '#e9ecef', color: '#6c757d' } : {}}
@@ -149,7 +163,7 @@ function TransactionForm({
         {/* Category (fake dropdown textbox with icon) */}
         <CategoryPickerField
           categories={categories}
-          selectedCategoryId={formData.category}
+          selectedCategoryId={formData.category_id != null ? formData.category_id : null}
           error={errors.category}
           onClick={isSystemGenerated ? undefined : openCategoryList}
           disabled={isSystemGenerated}
