@@ -13,13 +13,13 @@ export function validateTransactionForm(formData) {
   }
 
   // Payment method
-  if (!formData.paymentMethod) {
-    errors.paymentMethod = 'Payment method is required.';
+  if (!formData.payment_method_id) {
+    errors.payment_method_id = 'Payment method is required.';
   }
 
   // Category
-  if (!formData.category) {
-    errors.category = 'Category is required.';
+  if (!formData.category_id) {
+    errors.category_id = 'Category is required.';
   }
 
   // Date

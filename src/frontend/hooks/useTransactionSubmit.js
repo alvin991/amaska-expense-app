@@ -29,8 +29,8 @@ export default function useTransactionSubmit({
         notes: formData.notes,
         transaction_date: formData.transaction_date,
         merchant: formData.merchant,
-        category_id: formData.category,
-        payment_method_id: formData.paymentMethod,
+        category_id: formData.category_id,
+        payment_method_id: formData.payment_method_id,
       };
 
       await saveTransaction(tx);
