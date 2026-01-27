@@ -89,7 +89,7 @@ function TransactionForm({
       <Form onSubmit={handleSubmit}>
         {/* Amount */}
         <Form.Group className="mb-3">
-          <Form.Label>Amount {isDirty ? 'is dirty' : 'is clean'}</Form.Label>
+          <Form.Label>Amount</Form.Label>
           <InputGroup>
             <InputGroup.Text>$</InputGroup.Text>
             <Form.Control
