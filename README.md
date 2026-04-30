@@ -1,5 +1,11 @@
 # React + Vite
 
+## Annotated Home School Planner
+
+![Annotated Home School Planner screenshot with four highlights: System menu (blue), Breadcrumb (teal), Lessons tree — drag & drop (purple), Lesson details (orange).](assets/images/annotated_home_school_planner.png)
+
+*Annotated Home School Planner with four callouts.*
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:
